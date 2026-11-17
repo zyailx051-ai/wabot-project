@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Hubungkan Bot WhatsApp</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.8.1/socket.io.min.js"></script>
+<style>
+  :root {
+    --bg: #f4f6f8; --card: #ffffff; --text: #1a1a1a; --muted: #666;
+    --accent: #25D366; --border: #e2e5e9;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #121212; --card: #1e1e1e; --text: #f1f1f1; --muted: #a0a0a0; --border: #333;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    display: flex; align-items: center; justify-content: center;
+    padding: env(safe-area-inset-top, 0px) 16px env(safe-area-inset-bottom, 0px);
+    min-height: 100%;
+  }
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+    padding: 28px 24px; max-width: 420px; width: 100%; text-align: center;
+  }
+  h1 { font-size: 1.3rem; margin-bottom: 4px; }
+  p.sub { color: var(--muted); font-size: 0.9rem; margin-top: 0; }
+  .tabs { display: flex; gap: 8px; margin: 18px 0; }
+  .tab {
+    flex: 1; padding: 10px; border-radius: 10px; border: 1px solid var(--border);
+    background: transparent; color: var(--text); cursor: pointer; font-size: 0.9rem;
+  }
+  .tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  input {
+    width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text); font-size: 1rem; margin-bottom: 10px;
+  }
+  button.action {
+    width: 100%; padding: 12px; border-radius: 10px; border: none;
+    background: var(--accent); color: #fff; font-size: 1rem; cursor: pointer;
+  }
+  button.action:disabled { opacity: 0.6; }
+  #qrBox img { width: 100%; max-width: 260px; margin: 16px auto; border-radius: 8px; }
+  #pairCode {
+    font-size: 2rem; letter-spacing: 4px; font-weight: bold; color: var(--accent);
+    margin: 20px 0; word-break: break-all;
+  }
+  #status { margin-top: 14px; font-size: 0.9rem; color: var(--muted); }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>🤖 Hubungkan Bot WhatsApp</h1>
+    <p class="sub">Pilih metode koneksi, lalu ikuti instruksinya</p>
+
+    <div class="tabs">
+      <button class="tab active" id="tabQr">QR Code</button>
+      <button class="tab" id="tabPair">Pairing Code</button>
+    </div>
+
+    <div id="qrPane">
+      <button class="action" id="btnGenQr">Generate QR Code</button>
+      <div id="qrBox"></div>
+    </div>
+
+    <div id="pairPane" class="hidden">
+      <input type="text" id="phoneInput" placeholder="Nomor WA contoh: 628123456789" />
+      <button class="action" id="btnGenPair">Kirim & Dapatkan Kode</button>
+      <div id="pairCode"></div>
+    </div>
+
+    <div id="status">Status: menunggu...</div>
+  </div>
+
+<script>
+  const BACKEND_URL = "https://ganti-dengan-url-backend-kamu.up.railway.app";
+
+  const socket = io(BACKEND_URL, { transports: ["websocket"] });
+  const statusEl = document.getElementById("status");
+  const qrBox = document.getElementById("qrBox");
+  const pairCodeEl = document.getElementById("pairCode");
+
+  socket.on("connect", () => { statusEl.textContent = "Status: terhubung ke server bot, menunggu aksi..."; });
+  socket.on("disconnect", () => { statusEl.textContent = "Status: terputus dari server bot."; });
+
+  socket.on("status", (data) => {
+    if (data.status === "qr") {
+      qrBox.innerHTML = `<img src="${data.qr}" alt="QR Code" />`;
+      statusEl.textContent = "Status: scan QR ini dari WhatsApp > Perangkat Tertaut";
+    } else if (data.status === "pairing_code") {
+      pairCodeEl.textContent = data.code;
+      statusEl.textContent = "Status: masukkan kode ini di WhatsApp > Perangkat Tertaut > Tautkan dengan nomor telepon";
+    } else if (data.status === "connected") {
+      statusEl.textContent = "✅ Bot berhasil terhubung ke WhatsApp!";
+      qrBox.innerHTML = "";
+      pairCodeEl.textContent = "";
+    } else if (data.status === "disconnected") {
+      statusEl.textContent = "⚠️ Bot terputus, mencoba menyambung ulang...";
+    } else if (data.status === "error") {
+      statusEl.textContent = "❌ " + data.message;
+    }
+  });
+
+  document.getElementById("tabQr").onclick = () => {
+    document.getElementById("tabQr").classList.add("active");
+    document.getElementById("tabPair").classList.remove("active");
+    document.getElementById("qrPane").classList.remove("hidden");
+    document.getElementById("pairPane").classList.add("hidden");
+  };
+  document.getElementById("tabPair").onclick = () => {
+    document.getElementById("tabPair").classList.add("active");
+    document.getElementById("tabQr").classList.remove("active");
+    document.getElementById("pairPane").classList.remove("hidden");
+    document.getElementById("qrPane").classList.add("hidden");
+  };
+
+  document.getElementById("btnGenQr").onclick = async () => {
+    statusEl.textContent = "Status: meminta QR dari server...";
+    await fetch(BACKEND_URL + "/api/connect-qr", { method: "POST" });
+  };
+
+  document.getElementById("btnGenPair").onclick = async () => {
+    const phoneNumber = document.getElementById("phoneInput").value.trim();
+    if (!phoneNumber) return alert("Isi nomor WA dulu");
+    statusEl.textContent = "Status: meminta pairing code dari server...";
+    await fetch(BACKEND_URL + "/api/pair", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phoneNumber }),
+    });
+  };
+</script>
+</body>
+  </html>

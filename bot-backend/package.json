@@ -1,0 +1,27 @@
+{
+  "name": "wabot-backend",
+  "version": "1.0.0",
+  "description": "Backend bot WhatsApp (Baileys) + server QR/pairing code untuk dihubungkan ke web frontend",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.9",
+    "@hapi/boom": "^10.0.1",
+    "@napi-rs/canvas": "^0.1.53",
+    "axios": "^1.7.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "pino": "^9.4.0",
+    "qrcode": "^1.5.4",
+    "sharp": "^0.33.5",
+    "socket.io": "^4.8.1"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -20,7 +20,7 @@ function save(data) {
 
 function getGroupSettings(jid) {
   const data = load();
-  return data[jid] || { antilink: false, welcome: false };
+  return data[jid] || { antilink: false, welcome: false, welcomeText: null };
 }
 
 function setGroupSetting(jid, key, value) {

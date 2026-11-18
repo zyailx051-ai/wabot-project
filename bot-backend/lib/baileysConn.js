@@ -81,7 +81,18 @@ async function startConnection(io, handleMessage) {
   sock.ev.on('messages.upsert', async (m) => {
     try {
       const msg = m.messages?.[0];
-      if (!msg || !msg.message || msg.key.fromMe) return;
+      if (!msg || !msg.message) return;
+
+      if (msg.key.fromMe) {
+        // Pesan dari nomor bot sendiri: cuma proses kalau diawali prefix perintah
+        const t = msg.message.conversation || msg.message.extendedTextMessage?.text || '';
+        const prefix = process.env.BOT_PREFIX || '.';
+        if (!t.startsWith(prefix)) return;
+        if (msg.key.remoteJid.endsWith('@g.us')) {
+          msg.key.participant = sock.user.id.replace(/:\d+@/, '@');
+        }
+      }
+
       await handleMessage(sock, msg);
     } catch (err) {
       console.error('Error handling message:', err);

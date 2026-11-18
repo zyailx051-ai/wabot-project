@@ -40,16 +40,55 @@ async function cmdScreenshot(sock, msg, jid, text) {
   await sock.sendMessage(jid, { image: { url: shotUrl }, caption: `📸 Screenshot: ${url}` }, { quoted: msg });
 }
 
+function looksLikeShortUrl(s) {
+  return typeof s === 'string' && /^https?:\/\/\S+$/i.test(s.trim()) && !/error/i.test(s);
+}
+
+async function tryIsGd(url) {
+  const { data } = await axios.get('https://is.gd/create.php', {
+    params: { format: 'simple', url },
+    timeout: 15000,
+  });
+  const result = String(data).trim();
+  if (!looksLikeShortUrl(result)) throw new Error(result || 'is.gd menolak link ini');
+  return result;
+}
+
+async function tryTinyUrl(url) {
+  const { data } = await axios.get('https://tinyurl.com/api-create.php', {
+    params: { url },
+    timeout: 15000,
+  });
+  const result = String(data).trim();
+  if (!looksLikeShortUrl(result)) throw new Error(result || 'tinyurl menolak link ini');
+  return result;
+}
+
 async function cmdShortlink(sock, msg, jid, text) {
-  if (!text) return sock.sendMessage(jid, { text: 'Contoh: *.shortlink https://link-panjang.com*' }, { quoted: msg });
-  try {
-    const { data } = await axios.get('https://is.gd/create.php', {
-      params: { format: 'simple', url: text.trim() },
-    });
-    await sock.sendMessage(jid, { text: `🔗 ${data}` }, { quoted: msg });
-  } catch (err) {
-    await sock.sendMessage(jid, { text: '❌ Gagal bikin shortlink: ' + err.message }, { quoted: msg });
+  const url = (text || '').trim();
+  if (!url) return sock.sendMessage(jid, { text: 'Contoh: *.shortlink https://link-panjang.com*' }, { quoted: msg });
+  if (!/^https?:\/\//i.test(url)) {
+    return sock.sendMessage(jid, { text: '⚠️ Link harus diawali http:// atau https://' }, { quoted: msg });
   }
+
+  let short, via;
+  try {
+    short = await tryIsGd(url);
+    via = 'is.gd';
+  } catch (e1) {
+    try {
+      short = await tryTinyUrl(url);
+      via = 'tinyurl';
+    } catch (e2) {
+      return sock.sendMessage(
+        jid,
+        { text: `❌ Gagal bikin shortlink (sudah coba 2 layanan). Pesan error: ${e2.message}` },
+        { quoted: msg }
+      );
+    }
+  }
+
+  await sock.sendMessage(jid, { text: `🔗 ${short}\n_(via ${via})_` }, { quoted: msg });
 }
 
 module.exports = { cmdTranslate, cmdTts, cmdScreenshot, cmdShortlink };

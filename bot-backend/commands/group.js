@@ -1,4 +1,5 @@
 const { setGroupSetting, getGroupSettings } = require('../lib/store');
+const { downloadQuotedOrDirectMedia } = require('../lib/helpers');
 
 async function isSenderAdmin(sock, jid, senderJid) {
   const meta = await sock.groupMetadata(jid);
@@ -104,6 +105,49 @@ async function cmdSetDeskripsi(sock, msg, jid, senderJid, text) {
   await sock.sendMessage(jid, { text: '✅ Deskripsi grup berhasil diubah.' }, { quoted: msg });
 }
 
+async function cmdSwgc(sock, msg, jid, senderJid, captionText) {
+  if (!jid.endsWith('@g.us')) {
+    return sock.sendMessage(
+      jid,
+      { text: 'Perintah ini cuma bisa dipakai di dalam grup. Kirim/reply foto atau video dengan caption *.swgc* untuk dijadikan Status WA, otomatis bisa dilihat semua member grup ini.' },
+      { quoted: msg }
+    );
+  }
+  const media = await downloadQuotedOrDirectMedia(msg);
+  if (!media || (media.type !== 'imageMessage' && media.type !== 'videoMessage')) {
+    return sock.sendMessage(jid, { text: 'Kirim/reply foto atau video dengan caption *.swgc*' }, { quoted: msg });
+  }
+
+  let meta;
+  try {
+    meta = await sock.groupMetadata(jid);
+  } catch (e) {
+    return sock.sendMessage(jid, { text: '❌ Gagal ambil daftar member grup.' }, { quoted: msg });
+  }
+
+  const myId = sock.user.id.replace(/:\d+@/, '@');
+  const statusJidList = meta.participants.map((p) => p.id).filter((id) => id !== myId);
+  if (!statusJidList.length) {
+    return sock.sendMessage(jid, { text: '❌ Nggak ada member lain di grup ini buat jadi penerima status.' }, { quoted: msg });
+  }
+
+  const content =
+    media.type === 'videoMessage'
+      ? { video: media.buffer, caption: captionText || '' }
+      : { image: media.buffer, caption: captionText || '' };
+
+  await sock.sendMessage('status@broadcast', content, {
+    backgroundColor: '#25D366',
+    statusJidList,
+  });
+
+  await sock.sendMessage(
+    jid,
+    { text: `✅ Berhasil diposting ke Status WA, otomatis bisa dilihat oleh ${statusJidList.length} member grup ini.` },
+    { quoted: msg }
+  );
+}
+
 async function cmdGroupOpenClose(sock, msg, jid, senderJid, mode) {
   if (!(await requireGroupAdmin(sock, msg, jid, senderJid))) return;
   await sock.groupSettingUpdate(jid, mode === 'open' ? 'not_announcement' : 'announcement');
@@ -157,6 +201,7 @@ async function checkAntilink(sock, msg, jid, senderJid, text) {
 
 module.exports = {
   cmdKick,
+  cmdSwgc,
   cmdSetWelcome,
   cmdSetDeskripsi,
   cmdAdd,

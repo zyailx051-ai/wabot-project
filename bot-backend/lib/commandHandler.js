@@ -41,17 +41,20 @@ async function handleMessage(sock, msg) {
     s: () => sticker.cmdSticker(sock, msg, jid),
     toimg: () => sticker.cmdToImg(sock, msg, jid),
     brat: () => sticker.cmdBrat(sock, msg, jid, argText),
-    iqc: () => sticker.cmdIqc(sock, msg, jid, helpers),
+    bratvid: () => sticker.cmdBratVid(sock, msg, jid, argText),
+    iqc: () => sticker.cmdIqc(sock, msg, jid, helpers, argText),
 
     tiktok: () => downloader.cmdTiktok(sock, msg, jid, argText),
     tt: () => downloader.cmdTiktok(sock, msg, jid, argText),
     ig: () => downloader.cmdInstagram(sock, msg, jid, argText),
     fb: () => downloader.cmdFacebook(sock, msg, jid, argText),
-    yt: () => downloader.cmdYoutube(sock, msg, jid, argText),
-    ytmp3: () => downloader.cmdYoutube(sock, msg, jid, argText),
-    ytmp4: () => downloader.cmdYoutube(sock, msg, jid, argText),
+    yt: () => downloader.cmdYoutube(sock, msg, jid, argText, 'video'),
+    ytmp4: () => downloader.cmdYoutube(sock, msg, jid, argText, 'video'),
+    ytmp3: () => downloader.cmdYoutube(sock, msg, jid, argText, 'audio'),
+    play: () => downloader.cmdPlay(sock, msg, jid, argText),
     pinterest: () => downloader.cmdPinterest(sock, msg, jid, argText),
     twitter: () => downloader.cmdTwitter(sock, msg, jid, argText),
+    x: () => downloader.cmdTwitter(sock, msg, jid, argText),
 
     translate: () => tools.cmdTranslate(sock, msg, jid, argText),
     tts: () => tools.cmdTts(sock, msg, jid, argText),
@@ -79,7 +82,7 @@ async function handleMessage(sock, msg) {
   } catch (err) {
     console.error('Command error:', err);
     await react(sock, jid, msg, '❌');
-    await sock.sendMessage(jid, { text: '❌ Terjadi error saat menjalankan perintah: ' + err.message }, { quoted: msg });
+    await sock.sendMessage(jid, { text: '❌ ' + err.message }, { quoted: msg });
   }
 }
 

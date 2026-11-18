@@ -1,10 +1,11 @@
 const BOT_NAME = process.env.BOT_NAME || 'MyBot';
 
 function mainMenu(pushName) {
+  const waktu = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
   return `╭─❏ 「 ${BOT_NAME} 」
 │ 👤 User: ${pushName}
 │ ⚡ Status: Online
-│ 🕐 ${new Date().toLocaleString('id-ID')}
+│ 🕐 ${waktu}
 ╰───────────────❏
 
 「 ✦ MENU UTAMA ✦ 」
@@ -18,20 +19,24 @@ Ketik salah satu perintah di atas untuk lihat sub-menu.`;
 
 function stickerMenu() {
   return `「 ✦ MENU STICKER ✦ 」
-.sticker / .s     – gambar ke stiker (reply/kirim gambar)
+.sticker / .s     – gambar/video ke stiker
 .toimg            – stiker ke gambar (reply stiker)
 .brat <teks>      – teks ke stiker gaya Brat
-.iqc              – reply chat teks jadi stiker quote`;
+.bratvid <teks>   – stiker Brat animasi
+.iqc              – reply chat jadi stiker quote
+.iqc <teks>       – bikin stiker quote dari teks`;
 }
 
 function downloadMenu() {
   return `「 ✦ MENU DOWNLOADER ✦ 」
-.tiktok <link>    – download video TikTok (no watermark)
-.ig <link>        – Instagram (perlu API key, lihat README)
-.fb <link>        – Facebook (perlu API key, lihat README)
-.yt <link>        – YouTube (perlu API key, lihat README)
-.pinterest <link> – Pinterest (perlu API key, lihat README)
-.twitter <link>   – Twitter/X (perlu API key, lihat README)`;
+.tiktok / .tt <link>  – video/foto TikTok (no watermark)
+.ig <link>            – Instagram (reel/video)
+.fb <link>            – Facebook video
+.yt / .ytmp4 <link>   – video YouTube
+.ytmp3 <link>         – audio YouTube
+.play <judul>         – cari & kirim lagu
+.pinterest <link>     – Pinterest (video/gambar)
+.twitter / .x <link>  – video Twitter/X`;
 }
 
 function toolsMenu() {

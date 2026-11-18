@@ -22,7 +22,8 @@ function stickerMenu() {
 .sticker / .s     – gambar/video ke stiker
 .toimg            – stiker ke gambar (reply stiker)
 .brat <teks>      – teks ke stiker gaya Brat
-.bratvid <teks>   – stiker Brat animasi
+.bratvid <teks>   – stiker Brat animasi (kata per kata)
+.bratvid2 <teks>  – stiker Brat animasi (ketik huruf per huruf)
 .iqc              – reply chat jadi stiker quote
 .iqc <teks>       – bikin stiker quote dari teks`;
 }

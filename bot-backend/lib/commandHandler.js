@@ -71,6 +71,7 @@ async function handleMessage(sock, msg) {
     welcome: () => group.cmdWelcome(sock, msg, jid, senderJid, argText),
     setwelcome: () => group.cmdSetWelcome(sock, msg, jid, senderJid, argText),
     setdeskripsi: () => group.cmdSetDeskripsi(sock, msg, jid, senderJid, argText),
+    swgc: () => group.cmdSwgc(sock, msg, jid, senderJid, argText),
     groupopen: () => group.cmdGroupOpenClose(sock, msg, jid, senderJid, 'open'),
     groupclose: () => group.cmdGroupOpenClose(sock, msg, jid, senderJid, 'close'),
   };

@@ -6,6 +6,7 @@ const os = require('os');
 const path = require('path');
 const { downloadQuotedOrDirectMedia } = require('../lib/helpers');
 
+// Font opsional: taruh ArialNarrow.ttf di assets/fonts/ kalau mau hasil .brat persis.
 try {
   GlobalFonts.registerFromPath(path.join(__dirname, '..', 'assets', 'fonts', 'ArialNarrow.ttf'), 'ArialNarrowBrat');
 } catch (e) {
@@ -88,6 +89,7 @@ async function cmdToImg(sock, msg, jid) {
   await sock.sendMessage(jid, { image: png }, { quoted: msg });
 }
 
+// ---------- Brat ----------
 function wrapWords(ctx, words, maxW) {
   const lines = [];
   let cur = [];
@@ -307,6 +309,102 @@ async function cmdIqc(sock, msg, jid, helpers, argText) {
   const now = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' });
   ctx.fillStyle = 'rgba(234,250,243,0.55)';
   ctx.font = '15px "Segoe UI", sans-serif';
+  const timeText = now;
+  const timeW = ctx.measureText(timeText).width;
+  ctx.fillText(timeText, bubbleX + bubbleW - timeW - 34, bubbleY + bubbleH - 16);
+  ctx.strokeStyle = '#53bdeb';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(bubbleX + bubbleW - 24, bubbleY + bubbleH - 20);
+  ctx.lineTo(bubbleX + bubbleW - 20, bubbleY + bubbleH - 16);
+  ctx.lineTo(bubbleX + bubbleW - 12, bubbleY + bubbleH - 24);
+  ctx.moveTo(bubbleX + bubbleW - 18, bubbleY + bubbleH - 20);
+  ctx.lineTo(bubbleX + bubbleW - 14, bubbleY + bubbleH - 16);
+  ctx.lineTo(bubbleX + bubbleW - 6, bubbleY + bubbleH - 24);
+  ctx.stroke();
+
+  const png = canvas.toBuffer('image/png');
+  const jpeg = await sharp(png).flatten({ background: '#0b1f1c' }).jpeg({ quality: 92 }).toBuffer();
+  await sock.sendMessage(jid, { image: jpeg }, { quoted: msg });
+}
+
+// ---------- BratVid2: animasi ketik huruf-per-huruf + kursor berkedip ----------
+function layoutBratChars(text) {
+  const size = 512;
+  const pad = 36;
+  const canvas = createCanvas(size, size);
+  const ctx = canvas.getContext('2d');
+  const maxW = size - pad * 2;
+  let fontSize = 110;
+  let lines = [];
+  while (fontSize >= 20) {
+    ctx.font = `${fontSize}px ${BRAT_FONT}`;
+    lines = wrapWords(ctx, text.trim().split(/\s+/).filter(Boolean), maxW);
+    const tooWide = lines.some((l) => ctx.measureText(l.join(' ')).width > maxW);
+    if (!tooWide && lines.length * fontSize * 1.1 <= size - pad * 2) break;
+    fontSize -= 4;
+  }
+  const full = lines.map((l) => l.join(' ')).join('\n');
+  return { fontSize, lines: full.split('\n'), size, pad };
+}
+
+function drawBratChars(layout, visibleChars, showCursor) {
+  const { fontSize, lines, size, pad } = layout;
+  const canvas = createCanvas(size, size);
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, size, size);
+  ctx.fillStyle = '#000000';
+  ctx.font = `${fontSize}px ${BRAT_FONT}`;
+  ctx.textBaseline = 'top';
+  let remaining = visibleChars;
+  let y = pad;
+  let lastX = pad, lastY = y;
+  for (const line of lines) {
+    const take = Math.max(0, Math.min(line.length, remaining));
+    const shown = line.slice(0, take);
+    if (shown) ctx.fillText(shown, pad, y);
+    lastX = pad + ctx.measureText(shown).width;
+    lastY = y;
+    remaining -= line.length + 1;
+    y += fontSize * 1.1;
+    if (remaining < 0 && take < line.length) break;
+  }
+  if (showCursor) {
+    ctx.fillRect(lastX + 3, lastY + 4, Math.max(3, fontSize * 0.06), fontSize * 0.9);
+  }
+  return canvas.toBuffer('image/png');
+}
+
+async function cmdBratVid2(sock, msg, jid, text) {
+  if (!text) return sock.sendMessage(jid, { text: 'Contoh: *.bratvid2 teks kamu di sini*' }, { quoted: msg });
+  const layout = layoutBratChars(text.slice(0, 160).toLowerCase());
+  const totalChars = layout.lines.join('\n').length;
+  const webp = await withTmp(async (dir) => {
+    let frame = 0;
+    const save = (buf) => fs.writeFileSync(path.join(dir, `f${String(frame++).padStart(3, '0')}.png`), buf);
+    const step = Math.max(1, Math.round(totalChars / 40));
+    for (let i = 1; i <= totalChars; i += step) {
+      save(drawBratChars(layout, i, frame % 2 === 0));
+    }
+    const last = drawBratChars(layout, totalChars, false);
+    for (let k = 0; k < 5; k++) save(last);
+    const out = path.join(dir, 'out.webp');
+    await runFfmpeg([
+      '-framerate', '10',
+      '-i', path.join(dir, 'f%03d.png'),
+      '-c:v', 'libwebp',
+      '-q:v', '65',
+      '-loop', '0',
+      '-an',
+      out,
+    ]);
+    return fs.readFileSync(out);
+  });
+  await sock.sendMessage(jid, { sticker: webp }, { quoted: msg });
+}
+
+module.exports = { cmdSticker, cmdToImg, cmdBrat, cmdBratVid, cmdBratVid2, cmdIqc };if';
   const timeText = now;
   const timeW = ctx.measureText(timeText).width;
   ctx.fillText(timeText, bubbleX + bubbleW - timeW - 34, bubbleY + bubbleH - 16);

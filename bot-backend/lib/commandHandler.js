@@ -42,6 +42,7 @@ async function handleMessage(sock, msg) {
     toimg: () => sticker.cmdToImg(sock, msg, jid),
     brat: () => sticker.cmdBrat(sock, msg, jid, argText),
     bratvid: () => sticker.cmdBratVid(sock, msg, jid, argText),
+    bratvid2: () => sticker.cmdBratVid2(sock, msg, jid, argText),
     iqc: () => sticker.cmdIqc(sock, msg, jid, helpers, argText),
 
     tiktok: () => downloader.cmdTiktok(sock, msg, jid, argText),

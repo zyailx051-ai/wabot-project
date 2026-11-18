@@ -4,107 +4,212 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Hubungkan Bot WhatsApp</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.8.1/socket.io.min.js"></script>
 <style>
   :root {
-    --bg: #f4f6f8; --card: #ffffff; --text: #1a1a1a; --muted: #666;
-    --accent: #25D366; --border: #e2e5e9;
+    --bg1: #eef6f1; --bg2: #f7fbf6; --card: #ffffffee; --text: #182623; --muted: #5b6b66;
+    --accent: #1fbf6e; --accent-dark: #139a58; --border: #d9e8e1;
+    --off: #9aa6a2; --warn: #f5a524; --danger: #ef4444;
     color-scheme: light;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #121212; --card: #1e1e1e; --text: #f1f1f1; --muted: #a0a0a0; --border: #333;
+      --bg1: #0c1512; --bg2: #0a100e; --card: #121c19ee; --text: #eaf5ef; --muted: #96a6a0;
+      --accent: #27d87e; --accent-dark: #1fae67; --border: #203029;
+      --off: #5c6965; --warn: #f5b041; --danger: #f87171;
     }
   }
   * { box-sizing: border-box; }
   html, body { height: 100%; }
   body {
-    margin: 0; background: var(--bg); color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    margin: 0; color: var(--text);
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: radial-gradient(1200px 600px at 50% -10%, var(--bg2), var(--bg1));
     display: flex; align-items: center; justify-content: center;
     padding: env(safe-area-inset-top, 0px) 16px env(safe-area-inset-bottom, 0px);
     min-height: 100%;
   }
   .card {
-    background: var(--card); border: 1px solid var(--border); border-radius: 16px;
-    padding: 28px 24px; max-width: 420px; width: 100%; text-align: center;
+    background: var(--card); backdrop-filter: blur(10px);
+    border: 1px solid var(--border); border-radius: 22px;
+    padding: 32px 24px 28px; max-width: 420px; width: 100%; text-align: center;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.08);
   }
-  h1 { font-size: 1.3rem; margin-bottom: 4px; }
-  p.sub { color: var(--muted); font-size: 0.9rem; margin-top: 0; }
-  .tabs { display: flex; gap: 8px; margin: 18px 0; }
+  h1 { font-family: "Poppins", sans-serif; font-size: 1.25rem; margin: 14px 0 2px; font-weight: 600; }
+  p.sub { color: var(--muted); font-size: 0.88rem; margin: 0 0 20px; }
+
+  .orb-wrap { position: relative; width: 108px; height: 108px; margin: 0 auto; }
+  .orb-ring {
+    position: absolute; inset: 0; border-radius: 50%;
+    border: 2px solid var(--off); opacity: 0.5;
+    transition: border-color .4s ease;
+  }
+  .orb-pulse {
+    position: absolute; inset: 0; border-radius: 50%;
+    background: var(--off); opacity: 0;
+  }
+  .orb {
+    position: absolute; inset: 14px; border-radius: 50%;
+    background: var(--off);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 34px; transition: background .4s ease, transform .3s ease;
+  }
+  .orb-wrap.waiting .orb-ring { border-color: var(--warn); }
+  .orb-wrap.waiting .orb { background: var(--warn); }
+  .orb-wrap.waiting .orb-pulse { background: var(--warn); animation: pulse 1.4s ease-out infinite; }
+
+  .orb-wrap.connected .orb-ring { border-color: var(--accent); }
+  .orb-wrap.connected .orb { background: linear-gradient(135deg, var(--accent), var(--accent-dark)); transform: scale(1.03); }
+  .orb-wrap.connected .orb-pulse { background: var(--accent); animation: pulse 1.8s ease-out infinite; }
+
+  .orb-wrap.error .orb-ring { border-color: var(--danger); }
+  .orb-wrap.error .orb { background: var(--danger); }
+
+  @keyframes pulse {
+    0% { opacity: 0.45; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1.9); }
+  }
+  @keyframes pop {
+    0% { transform: scale(0.6); opacity: 0; }
+    60% { transform: scale(1.15); opacity: 1; }
+    100% { transform: scale(1); }
+  }
+  .orb svg { width: 34px; height: 34px; animation: pop .35s ease; }
+
+  .status-label {
+    font-family: "Poppins", sans-serif; font-weight: 600; font-size: 0.95rem;
+    margin-top: 14px; letter-spacing: .2px;
+  }
+  .status-detail { color: var(--muted); font-size: 0.82rem; margin-top: 2px; min-height: 18px; }
+
+  .tabs { display: flex; gap: 8px; margin: 22px 0 14px; background: var(--bg1); padding: 4px; border-radius: 12px; }
   .tab {
-    flex: 1; padding: 10px; border-radius: 10px; border: 1px solid var(--border);
-    background: transparent; color: var(--text); cursor: pointer; font-size: 0.9rem;
+    flex: 1; padding: 9px; border-radius: 9px; border: none;
+    background: transparent; color: var(--muted); cursor: pointer; font-size: 0.86rem; font-weight: 500;
+    transition: background .2s, color .2s;
   }
-  .tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .tab.active { background: var(--card); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+
   input {
-    width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border);
-    background: var(--bg); color: var(--text); font-size: 1rem; margin-bottom: 10px;
+    width: 100%; padding: 13px 14px; border-radius: 12px; border: 1px solid var(--border);
+    background: var(--bg1); color: var(--text); font-size: 1rem; margin-bottom: 10px; outline: none;
+    transition: border-color .2s;
   }
+  input:focus { border-color: var(--accent); }
+
   button.action {
-    width: 100%; padding: 12px; border-radius: 10px; border: none;
-    background: var(--accent); color: #fff; font-size: 1rem; cursor: pointer;
+    width: 100%; padding: 13px; border-radius: 12px; border: none;
+    background: linear-gradient(135deg, var(--accent), var(--accent-dark)); color: #fff;
+    font-size: 1rem; font-weight: 600; cursor: pointer; transition: opacity .2s, transform .1s;
   }
-  button.action:disabled { opacity: 0.6; }
-  #qrBox img { width: 100%; max-width: 260px; margin: 16px auto; border-radius: 8px; }
+  button.action:active { transform: scale(0.98); }
+  button.action:disabled { opacity: 0.55; }
+
+  #qrBox img {
+    width: 100%; max-width: 230px; margin: 14px auto 4px; border-radius: 14px;
+    border: 6px solid #fff; box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+    animation: pop .4s ease;
+  }
   #pairCode {
-    font-size: 2rem; letter-spacing: 4px; font-weight: bold; color: var(--accent);
-    margin: 20px 0; word-break: break-all;
+    font-family: "Poppins", sans-serif;
+    font-size: 2.1rem; letter-spacing: 6px; font-weight: 700; color: var(--accent);
+    margin: 16px 0 4px; word-break: break-all; animation: pop .4s ease;
   }
-  #status { margin-top: 14px; font-size: 0.9rem; color: var(--muted); }
   .hidden { display: none; }
+  .hint { font-size: 0.78rem; color: var(--muted); margin-top: 6px; line-height: 1.4; }
 </style>
 </head>
 <body>
   <div class="card">
-    <h1>🤖 Hubungkan Bot WhatsApp</h1>
+    <div class="orb-wrap" id="orbWrap">
+      <div class="orb-ring"></div>
+      <div class="orb-pulse"></div>
+      <div class="orb" id="orb">🤖</div>
+    </div>
+    <h1>Hubungkan Bot WhatsApp</h1>
     <p class="sub">Pilih metode koneksi, lalu ikuti instruksinya</p>
 
-    <div class="tabs">
-      <button class="tab active" id="tabQr">QR Code</button>
-      <button class="tab" id="tabPair">Pairing Code</button>
-    </div>
+    <div class="status-label" id="statusLabel">Offline</div>
+    <div class="status-detail" id="statusDetail">Server belum terhubung</div>
 
-    <div id="qrPane">
-      <button class="action" id="btnGenQr">Generate QR Code</button>
-      <div id="qrBox"></div>
-    </div>
+    <div id="connectArea">
+      <div class="tabs">
+        <button class="tab active" id="tabQr">QR Code</button>
+        <button class="tab" id="tabPair">Pairing Code</button>
+      </div>
 
-    <div id="pairPane" class="hidden">
-      <input type="text" id="phoneInput" placeholder="Nomor WA contoh: 628123456789" />
-      <button class="action" id="btnGenPair">Kirim & Dapatkan Kode</button>
-      <div id="pairCode"></div>
-    </div>
+      <div id="qrPane">
+        <button class="action" id="btnGenQr">Generate QR Code</button>
+        <div id="qrBox"></div>
+        <div class="hint">Buka WhatsApp → Perangkat Tertaut → Tautkan Perangkat, lalu scan</div>
+      </div>
 
-    <div id="status">Status: menunggu...</div>
+      <div id="pairPane" class="hidden">
+        <input type="text" id="phoneInput" placeholder="Nomor WA contoh: 628123456789" />
+        <button class="action" id="btnGenPair">Kirim & Dapatkan Kode</button>
+        <div id="pairCode"></div>
+        <div class="hint">Masukkan kode di WhatsApp → Perangkat Tertaut → Tautkan dengan nomor telepon</div>
+      </div>
+    </div>
   </div>
 
 <script>
   const BACKEND_URL = "https://wabot-project-production.up.railway.app";
 
   const socket = io(BACKEND_URL, { transports: ["websocket"] });
-  const statusEl = document.getElementById("status");
+  const orbWrap = document.getElementById("orbWrap");
+  const orb = document.getElementById("orb");
+  const statusLabel = document.getElementById("statusLabel");
+  const statusDetail = document.getElementById("statusDetail");
+  const connectArea = document.getElementById("connectArea");
   const qrBox = document.getElementById("qrBox");
   const pairCodeEl = document.getElementById("pairCode");
 
-  socket.on("connect", () => { statusEl.textContent = "Status: terhubung ke server bot, menunggu aksi..."; });
-  socket.on("disconnect", () => { statusEl.textContent = "Status: terputus dari server bot."; });
+  function setState(state, label, detail, icon) {
+    orbWrap.className = "orb-wrap " + state;
+    orb.innerHTML = icon;
+    statusLabel.textContent = label;
+    statusDetail.textContent = detail;
+  }
+
+  const ICONS = {
+    off: "🤖",
+    waiting: "⌛",
+    check: '<svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    error: "⚠️",
+  };
+
+  setState("off", "Offline", "Menghubungkan ke server...", ICONS.off);
+
+  socket.on("connect", () => {
+    setState("off", "Server Online", "Pilih metode koneksi di bawah", ICONS.off);
+  });
+  socket.on("disconnect", () => {
+    setState("off", "Offline", "Server tidak terjangkau", ICONS.off);
+  });
 
   socket.on("status", (data) => {
     if (data.status === "qr") {
       qrBox.innerHTML = `<img src="${data.qr}" alt="QR Code" />`;
-      statusEl.textContent = "Status: scan QR ini dari WhatsApp > Perangkat Tertaut";
+      setState("waiting", "Menunggu Scan", "Scan QR di atas dari WhatsApp kamu", ICONS.waiting);
     } else if (data.status === "pairing_code") {
       pairCodeEl.textContent = data.code;
-      statusEl.textContent = "Status: masukkan kode ini di WhatsApp > Perangkat Tertaut > Tautkan dengan nomor telepon";
+      setState("waiting", "Menunggu Kode", "Masukkan kode di WhatsApp kamu", ICONS.waiting);
     } else if (data.status === "connected") {
-      statusEl.textContent = "✅ Bot berhasil terhubung ke WhatsApp!";
+      setState("connected", "Online", "Bot berhasil terhubung ke WhatsApp 🎉", ICONS.check);
       qrBox.innerHTML = "";
       pairCodeEl.textContent = "";
+      connectArea.classList.add("hidden");
     } else if (data.status === "disconnected") {
-      statusEl.textContent = "⚠️ Bot terputus, mencoba menyambung ulang...";
+      setState("waiting", "Menyambung Ulang", "Koneksi terputus, mencoba lagi...", ICONS.waiting);
+      connectArea.classList.remove("hidden");
+    } else if (data.status === "idle") {
+      setState("off", "Belum Terhubung", "Pilih metode koneksi di bawah", ICONS.off);
     } else if (data.status === "error") {
-      statusEl.textContent = "❌ " + data.message;
+      setState("error", "Terjadi Error", data.message || "Coba lagi", ICONS.error);
     }
   });
 
@@ -122,14 +227,14 @@
   };
 
   document.getElementById("btnGenQr").onclick = async () => {
-    statusEl.textContent = "Status: meminta QR dari server...";
+    setState("waiting", "Membuat QR...", "Mohon tunggu sebentar", ICONS.waiting);
     await fetch(BACKEND_URL + "/api/connect-qr", { method: "POST" });
   };
 
   document.getElementById("btnGenPair").onclick = async () => {
     const phoneNumber = document.getElementById("phoneInput").value.trim();
     if (!phoneNumber) return alert("Isi nomor WA dulu");
-    statusEl.textContent = "Status: meminta pairing code dari server...";
+    setState("waiting", "Membuat Kode...", "Mohon tunggu sebentar", ICONS.waiting);
     await fetch(BACKEND_URL + "/api/pair", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -138,4 +243,4 @@
   };
 </script>
 </body>
-  </html>
+          </html>

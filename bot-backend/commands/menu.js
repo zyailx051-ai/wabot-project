@@ -57,6 +57,9 @@ function groupMenu() {
 .hidetag <teks>     – tag semua member (hidden)
 .antilink on/off    – anti-link
 .welcome on/off     – pesan welcome/leave
+.setwelcome <teks>  – atur teks welcome custom ({user}, {group})
+.setdeskripsi <teks>– ganti deskripsi grup
+.swgc               – kirim/reply foto-video, jadi Status WA utk semua member grup
 .groupopen          – buka grup
 .groupclose         – tutup grup`;
 }

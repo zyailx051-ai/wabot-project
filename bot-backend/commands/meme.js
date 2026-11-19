@@ -71,3 +71,4 @@ async function cmdSmeme(sock, msg, jid, argText) {
 }
 
 module.exports = { cmdSmeme };
+    

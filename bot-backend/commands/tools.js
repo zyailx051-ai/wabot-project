@@ -41,8 +41,6 @@ async function cmdScreenshot(sock, msg, jid, text) {
   await sock.sendMessage(jid, { image: { url: shotUrl }, caption: `📸 Screenshot: ${url}` }, { quoted: msg });
 }
 
-// Shortlink dengan 2 lapis: is.gd dulu, kalau hasilnya nggak valid (error / bukan link),
-// otomatis coba tinyurl sebagai cadangan. Dua-duanya gratis, tanpa API key.
 function looksLikeShortUrl(s) {
   return typeof s === 'string' && /^https?:\/\/\S+$/i.test(s.trim()) && !/error/i.test(s);
 }
@@ -94,7 +92,6 @@ async function cmdShortlink(sock, msg, jid, text) {
   await sock.sendMessage(jid, { text: `🔗 ${short}\n_(via ${via})_` }, { quoted: msg });
 }
 
-// Cuaca: pakai wttr.in, gratis tanpa API key, cukup kirim nama kota
 async function cmdWeather(sock, msg, jid, text) {
   const city = (text || '').trim();
   if (!city) return sock.sendMessage(jid, { text: 'Contoh: *.cuaca Jakarta*' }, { quoted: msg });
@@ -121,7 +118,6 @@ async function cmdWeather(sock, msg, jid, text) {
   }
 }
 
-// QR Code: generate dari teks, pakai library qrcode (sudah ada di dependencies)
 async function cmdQrcode(sock, msg, jid, text) {
   const content = (text || '').trim();
   if (!content) return sock.sendMessage(jid, { text: 'Contoh: *.qrcode https://wa.me/628123456789* atau teks apa saja' }, { quoted: msg });
@@ -133,7 +129,6 @@ async function cmdQrcode(sock, msg, jid, text) {
   }
 }
 
-// Kurs mata uang: pakai frankfurter.app, gratis tanpa API key (mata uang fiat utama)
 async function cmdKurs(sock, msg, jid, text) {
   const m = (text || '').trim().match(/^([\d.,]+)\s+([a-zA-Z]{3})\s+([a-zA-Z]{3})$/);
   if (!m) return sock.sendMessage(jid, { text: 'Contoh: *.kurs 100 usd idr*' }, { quoted: msg });
@@ -157,7 +152,6 @@ async function cmdKurs(sock, msg, jid, text) {
   }
 }
 
-// Fakta acak: ambil bahasa Inggris dari uselessfacts, lalu translate ke Indonesia
 async function cmdFakta(sock, msg, jid) {
   try {
     const { data } = await axios.get('https://uselessfacts.jsph.pl/api/v2/facts/random', {
@@ -176,4 +170,3 @@ async function cmdFakta(sock, msg, jid) {
 }
 
 module.exports = { cmdTranslate, cmdTts, cmdScreenshot, cmdShortlink, cmdWeather, cmdQrcode, cmdKurs, cmdFakta };
-      

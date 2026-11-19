@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Hubungkan Bot WhatsApp</title>
+<title>Kontrol Bot WhatsApp</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -28,138 +28,156 @@
     margin: 0; color: var(--text);
     font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     background: radial-gradient(1200px 600px at 50% -10%, var(--bg2), var(--bg1));
-    display: flex; align-items: center; justify-content: center;
-    padding: env(safe-area-inset-top, 0px) 16px env(safe-area-inset-bottom, 0px);
     min-height: 100%;
+    padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
   }
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; position: sticky; top: 0; z-index: 10;
+    background: var(--bg1); border-bottom: 1px solid var(--border);
+  }
+  .iconbtn {
+    width: 38px; height: 38px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--card); display: flex; align-items: center; justify-content: center;
+    font-size: 18px; cursor: pointer; text-decoration: none; color: var(--text);
+  }
+  .topbar h2 { font-family: "Poppins", sans-serif; font-size: 1rem; margin: 0; }
+
+  .wrap { max-width: 460px; margin: 0 auto; padding: 16px; }
+
+  .banner {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 14px; border-radius: 14px; margin-bottom: 14px;
+    background: var(--card); border: 1px solid var(--border);
+    font-weight: 600; font-size: 0.9rem;
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--off); flex-shrink: 0; }
+  .banner.on .dot { background: var(--accent); box-shadow: 0 0 0 4px rgba(31,191,110,0.18); }
+  .banner.off .dot { background: var(--danger); }
+
   .card {
     background: var(--card); backdrop-filter: blur(10px);
-    border: 1px solid var(--border); border-radius: 22px;
-    padding: 32px 24px 28px; max-width: 420px; width: 100%; text-align: center;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+    border: 1px solid var(--border); border-radius: 18px;
+    padding: 24px 20px; margin-bottom: 14px;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.06);
+    text-align: center;
   }
-  h1 { font-family: "Poppins", sans-serif; font-size: 1.25rem; margin: 14px 0 2px; font-weight: 600; }
-  p.sub { color: var(--muted); font-size: 0.88rem; margin: 0 0 20px; }
+  h1 { font-family: "Poppins", sans-serif; font-size: 1.15rem; margin: 12px 0 2px; font-weight: 600; }
+  p.sub { color: var(--muted); font-size: 0.85rem; margin: 0 0 16px; }
 
-  .orb-wrap { position: relative; width: 108px; height: 108px; margin: 0 auto; }
-  .orb-ring {
-    position: absolute; inset: 0; border-radius: 50%;
-    border: 2px solid var(--off); opacity: 0.5;
-    transition: border-color .4s ease;
-  }
-  .orb-pulse {
-    position: absolute; inset: 0; border-radius: 50%;
-    background: var(--off); opacity: 0;
-  }
-  .orb {
-    position: absolute; inset: 14px; border-radius: 50%;
-    background: var(--off);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 34px; transition: background .4s ease, transform .3s ease;
-  }
+  .orb-wrap { position: relative; width: 92px; height: 92px; margin: 0 auto; }
+  .orb-ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--off); opacity: 0.5; transition: border-color .4s; }
+  .orb-pulse { position: absolute; inset: 0; border-radius: 50%; background: var(--off); opacity: 0; }
+  .orb { position: absolute; inset: 12px; border-radius: 50%; background: var(--off); display: flex; align-items: center; justify-content: center; font-size: 30px; transition: background .4s, transform .3s; }
   .orb-wrap.waiting .orb-ring { border-color: var(--warn); }
   .orb-wrap.waiting .orb { background: var(--warn); }
   .orb-wrap.waiting .orb-pulse { background: var(--warn); animation: pulse 1.4s ease-out infinite; }
-
   .orb-wrap.connected .orb-ring { border-color: var(--accent); }
   .orb-wrap.connected .orb { background: linear-gradient(135deg, var(--accent), var(--accent-dark)); transform: scale(1.03); }
   .orb-wrap.connected .orb-pulse { background: var(--accent); animation: pulse 1.8s ease-out infinite; }
-
   .orb-wrap.error .orb-ring { border-color: var(--danger); }
   .orb-wrap.error .orb { background: var(--danger); }
+  @keyframes pulse { 0% { opacity: .45; transform: scale(1); } 100% { opacity: 0; transform: scale(1.9); } }
+  @keyframes pop { 0% { transform: scale(.6); opacity: 0; } 60% { transform: scale(1.15); opacity: 1; } 100% { transform: scale(1); } }
+  .orb svg { width: 30px; height: 30px; animation: pop .35s ease; }
 
-  @keyframes pulse {
-    0% { opacity: 0.45; transform: scale(1); }
-    100% { opacity: 0; transform: scale(1.9); }
-  }
-  @keyframes pop {
-    0% { transform: scale(0.6); opacity: 0; }
-    60% { transform: scale(1.15); opacity: 1; }
-    100% { transform: scale(1); }
-  }
-  .orb svg { width: 34px; height: 34px; animation: pop .35s ease; }
+  .status-label { font-family: "Poppins", sans-serif; font-weight: 600; font-size: 0.92rem; margin-top: 12px; }
+  .status-detail { color: var(--muted); font-size: 0.8rem; margin-top: 2px; min-height: 16px; }
 
-  .status-label {
-    font-family: "Poppins", sans-serif; font-weight: 600; font-size: 0.95rem;
-    margin-top: 14px; letter-spacing: .2px;
-  }
-  .status-detail { color: var(--muted); font-size: 0.82rem; margin-top: 2px; min-height: 18px; }
-
-  .tabs { display: flex; gap: 8px; margin: 22px 0 14px; background: var(--bg1); padding: 4px; border-radius: 12px; }
-  .tab {
-    flex: 1; padding: 9px; border-radius: 9px; border: none;
-    background: transparent; color: var(--muted); cursor: pointer; font-size: 0.86rem; font-weight: 500;
-    transition: background .2s, color .2s;
-  }
+  .tabs { display: flex; gap: 8px; margin: 18px 0 12px; background: var(--bg1); padding: 4px; border-radius: 12px; }
+  .tab { flex: 1; padding: 9px; border-radius: 9px; border: none; background: transparent; color: var(--muted); cursor: pointer; font-size: 0.84rem; font-weight: 500; }
   .tab.active { background: var(--card); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
 
-  input {
-    width: 100%; padding: 13px 14px; border-radius: 12px; border: 1px solid var(--border);
-    background: var(--bg1); color: var(--text); font-size: 1rem; margin-bottom: 10px; outline: none;
-    transition: border-color .2s;
-  }
+  input { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg1); color: var(--text); font-size: 1rem; margin-bottom: 10px; outline: none; }
   input:focus { border-color: var(--accent); }
 
-  button.action {
-    width: 100%; padding: 13px; border-radius: 12px; border: none;
-    background: linear-gradient(135deg, var(--accent), var(--accent-dark)); color: #fff;
-    font-size: 1rem; font-weight: 600; cursor: pointer; transition: opacity .2s, transform .1s;
-  }
-  button.action:active { transform: scale(0.98); }
-  button.action:disabled { opacity: 0.55; }
+  button.action { width: 100%; padding: 12px; border-radius: 12px; border: none; background: linear-gradient(135deg, var(--accent), var(--accent-dark)); color: #fff; font-size: 0.95rem; font-weight: 600; cursor: pointer; }
+  button.action:disabled { opacity: 0.5; }
 
-  #qrBox img {
-    width: 100%; max-width: 230px; margin: 14px auto 4px; border-radius: 14px;
-    border: 6px solid #fff; box-shadow: 0 6px 24px rgba(0,0,0,0.12);
-    animation: pop .4s ease;
-  }
-  #pairCode {
-    font-family: "Poppins", sans-serif;
-    font-size: 2.1rem; letter-spacing: 6px; font-weight: 700; color: var(--accent);
-    margin: 16px 0 4px; word-break: break-all; animation: pop .4s ease;
-  }
+  .btnrow { display: flex; gap: 8px; margin-top: 10px; }
+  .btn-sm { flex: 1; padding: 11px 6px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg1); color: var(--text); font-size: 0.82rem; font-weight: 600; cursor: pointer; }
+  .btn-sm.stop { color: var(--warn); border-color: var(--warn); }
+  .btn-sm.danger { color: var(--danger); border-color: var(--danger); }
+
+  #qrBox img { width: 100%; max-width: 210px; margin: 12px auto 4px; border-radius: 14px; border: 6px solid #fff; box-shadow: 0 6px 24px rgba(0,0,0,0.12); animation: pop .4s ease; }
+  #pairCode { font-family: "Poppins", sans-serif; font-size: 1.9rem; letter-spacing: 5px; font-weight: 700; color: var(--accent); margin: 14px 0 4px; animation: pop .4s ease; }
   .hidden { display: none; }
-  .hint { font-size: 0.78rem; color: var(--muted); margin-top: 6px; line-height: 1.4; }
+  .hint { font-size: 0.76rem; color: var(--muted); margin-top: 6px; line-height: 1.4; }
+
+  .logcard { text-align: left; }
+  .logcard h3 { font-family: "Poppins", sans-serif; font-size: 0.9rem; margin: 0 0 10px; }
+  .logbox { max-height: 180px; overflow-y: auto; font-size: 0.78rem; font-family: "SFMono-Regular", Consolas, monospace; }
+  .logline { padding: 6px 0; border-bottom: 1px dashed var(--border); color: var(--muted); }
+  .logline b { color: var(--text); }
+  .logline.ok b.cmdname { color: var(--accent-dark); }
+  .logline.error b.cmdname { color: var(--danger); }
+  .logempty { color: var(--muted); font-size: 0.8rem; text-align: center; padding: 10px 0; }
 </style>
 </head>
 <body>
-  <div class="card">
-    <div class="orb-wrap" id="orbWrap">
-      <div class="orb-ring"></div>
-      <div class="orb-pulse"></div>
-      <div class="orb" id="orb">🤖</div>
+  <div class="topbar">
+    <a class="iconbtn" href="dashboard.html" aria-label="Pengaturan">☰</a>
+    <h2>Kontrol Bot</h2>
+    <span style="width:38px"></span>
+  </div>
+
+  <div class="wrap">
+    <div class="banner off" id="banner">
+      <span class="dot"></span>
+      <span id="bannerText">Memuat status...</span>
     </div>
-    <h1>Hubungkan Bot WhatsApp</h1>
-    <p class="sub">Pilih metode koneksi, lalu ikuti instruksinya</p>
 
-    <div class="status-label" id="statusLabel">Offline</div>
-    <div class="status-detail" id="statusDetail">Server belum terhubung</div>
+    <div class="card">
+      <div class="orb-wrap" id="orbWrap">
+        <div class="orb-ring"></div>
+        <div class="orb-pulse"></div>
+        <div class="orb" id="orb">🤖</div>
+      </div>
+      <h1>Hubungkan Bot WhatsApp</h1>
+      <p class="sub">Isi nomor, lalu tekan Lanjut untuk pertama kali konek</p>
 
-    <div id="connectArea">
-      <div class="tabs">
-        <button class="tab active" id="tabQr">QR Code</button>
-        <button class="tab" id="tabPair">Pairing Code</button>
+      <div class="status-label" id="statusLabel">Offline</div>
+      <div class="status-detail" id="statusDetail">Menghubungkan ke server...</div>
+
+      <div id="connectArea">
+        <div class="tabs">
+          <button class="tab active" id="tabPair">Pairing Code</button>
+          <button class="tab" id="tabQr">QR Code</button>
+        </div>
+
+        <div id="pairPane">
+          <input type="text" id="phoneInput" placeholder="Nomor WA contoh: 628123456789" />
+          <button class="action" id="btnStart">▶️ Start / Lanjut</button>
+          <div id="pairCode"></div>
+          <div class="hint">Masukkan kode di WhatsApp → Perangkat Tertaut → Tautkan dengan nomor telepon</div>
+        </div>
+
+        <div id="qrPane" class="hidden">
+          <button class="action" id="btnGenQr">Generate QR Code</button>
+          <div id="qrBox"></div>
+          <div class="hint">Buka WhatsApp → Perangkat Tertaut → Tautkan Perangkat, lalu scan</div>
+        </div>
       </div>
 
-      <div id="qrPane">
-        <button class="action" id="btnGenQr">Generate QR Code</button>
-        <div id="qrBox"></div>
-        <div class="hint">Buka WhatsApp → Perangkat Tertaut → Tautkan Perangkat, lalu scan</div>
+      <div class="btnrow">
+        <button class="btn-sm stop" id="btnStop">⏸️ Stop</button>
+        <button class="btn-sm danger" id="btnClear">🗑️ Hapus Sesi</button>
       </div>
+      <div class="hint">Stop = bot berhenti tapi sesi tetap tersimpan. Hapus Sesi = wajib konek ulang dari awal.</div>
+    </div>
 
-      <div id="pairPane" class="hidden">
-        <input type="text" id="phoneInput" placeholder="Nomor WA contoh: 628123456789" />
-        <button class="action" id="btnGenPair">Kirim & Dapatkan Kode</button>
-        <div id="pairCode"></div>
-        <div class="hint">Masukkan kode di WhatsApp → Perangkat Tertaut → Tautkan dengan nomor telepon</div>
+    <div class="card logcard">
+      <h3>📋 Log Aktivitas</h3>
+      <div class="logbox" id="logBox">
+        <div class="logempty">Belum ada aktivitas.</div>
       </div>
     </div>
   </div>
 
 <script>
   const BACKEND_URL = "https://wabot-project-production.up.railway.app";
-
   const socket = io(BACKEND_URL, { transports: ["websocket"] });
+
   const orbWrap = document.getElementById("orbWrap");
   const orb = document.getElementById("orb");
   const statusLabel = document.getElementById("statusLabel");
@@ -167,6 +185,25 @@
   const connectArea = document.getElementById("connectArea");
   const qrBox = document.getElementById("qrBox");
   const pairCodeEl = document.getElementById("pairCode");
+  const banner = document.getElementById("banner");
+  const bannerText = document.getElementById("bannerText");
+  const logBox = document.getElementById("logBox");
+
+  let isEnabled = true;
+  let isConnected = false;
+
+  function updateBanner() {
+    if (isEnabled && isConnected) {
+      banner.className = "banner on";
+      bannerText.textContent = "🟢 Bot Aktif & Terhubung";
+    } else if (!isEnabled) {
+      banner.className = "banner off";
+      bannerText.textContent = "🔴 Bot Dinonaktifkan (lihat Pengaturan)";
+    } else {
+      banner.className = "banner off";
+      bannerText.textContent = "⚪ Bot Belum Terhubung";
+    }
+  }
 
   function setState(state, label, detail, icon) {
     orbWrap.className = "orb-wrap " + state;
@@ -184,12 +221,29 @@
 
   setState("off", "Offline", "Menghubungkan ke server...", ICONS.off);
 
+  function addLog(entry) {
+    logBox.querySelector(".logempty")?.remove();
+    const div = document.createElement("div");
+    div.className = "logline " + (entry.status || "");
+    const time = new Date(entry.time).toLocaleTimeString("id-ID");
+    div.innerHTML = `[${time}] <b class="cmdname">.${entry.cmd}</b> dari ${String(entry.from || "").split("@")[0]} — ${entry.status === "ok" ? "berhasil" : "error: " + (entry.message || "")}`;
+    logBox.prepend(div);
+    while (logBox.children.length > 50) logBox.removeChild(logBox.lastChild);
+  }
+
   socket.on("connect", () => {
     setState("off", "Server Online", "Pilih metode koneksi di bawah", ICONS.off);
   });
   socket.on("disconnect", () => {
     setState("off", "Offline", "Server tidak terjangkau", ICONS.off);
   });
+
+  socket.on("settings", (s) => {
+    isEnabled = s.enabled;
+    updateBanner();
+  });
+
+  socket.on("log", (entry) => addLog(entry));
 
   socket.on("status", (data) => {
     if (data.status === "qr") {
@@ -199,31 +253,54 @@
       pairCodeEl.textContent = data.code;
       setState("waiting", "Menunggu Kode", "Masukkan kode di WhatsApp kamu", ICONS.waiting);
     } else if (data.status === "connected") {
+      isConnected = true;
       setState("connected", "Online", "Bot berhasil terhubung ke WhatsApp 🎉", ICONS.check);
       qrBox.innerHTML = "";
       pairCodeEl.textContent = "";
       connectArea.classList.add("hidden");
+      updateBanner();
     } else if (data.status === "disconnected") {
+      isConnected = false;
       setState("waiting", "Menyambung Ulang", "Koneksi terputus, mencoba lagi...", ICONS.waiting);
       connectArea.classList.remove("hidden");
+      updateBanner();
+    } else if (data.status === "stopped") {
+      isConnected = false;
+      setState("off", "Dihentikan", "Sesi tersimpan, tekan Start untuk lanjut", ICONS.off);
+      connectArea.classList.remove("hidden");
+      updateBanner();
     } else if (data.status === "idle") {
+      isConnected = false;
       setState("off", "Belum Terhubung", "Pilih metode koneksi di bawah", ICONS.off);
+      updateBanner();
     } else if (data.status === "error") {
       setState("error", "Terjadi Error", data.message || "Coba lagi", ICONS.error);
     }
   });
 
+  document.getElementById("tabPair").onclick = () => {
+    document.getElementById("tabPair").classList.add("active");
+    document.getElementById("tabQr").classList.remove("active");
+    document.getElementById("pairPane").classList.remove("hidden");
+    document.getElementById("qrPane").classList.add("hidden");
+  };
   document.getElementById("tabQr").onclick = () => {
     document.getElementById("tabQr").classList.add("active");
     document.getElementById("tabPair").classList.remove("active");
     document.getElementById("qrPane").classList.remove("hidden");
     document.getElementById("pairPane").classList.add("hidden");
   };
-  document.getElementById("tabPair").onclick = () => {
-    document.getElementById("tabPair").classList.add("active");
-    document.getElementById("tabQr").classList.remove("active");
-    document.getElementById("pairPane").classList.remove("hidden");
-    document.getElementById("qrPane").classList.add("hidden");
+
+  document.getElementById("btnStart").onclick = async () => {
+    const phoneNumber = document.getElementById("phoneInput").value.trim();
+    setState("waiting", "Memulai...", "Mohon tunggu sebentar", ICONS.waiting);
+    const res = await fetch(BACKEND_URL + "/api/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phoneNumber }),
+    });
+    const data = await res.json();
+    if (!res.ok) alert(data.error || "Gagal memulai");
   };
 
   document.getElementById("btnGenQr").onclick = async () => {
@@ -231,16 +308,32 @@
     await fetch(BACKEND_URL + "/api/connect-qr", { method: "POST" });
   };
 
-  document.getElementById("btnGenPair").onclick = async () => {
-    const phoneNumber = document.getElementById("phoneInput").value.trim();
-    if (!phoneNumber) return alert("Isi nomor WA dulu");
-    setState("waiting", "Membuat Kode...", "Mohon tunggu sebentar", ICONS.waiting);
-    await fetch(BACKEND_URL + "/api/pair", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phoneNumber }),
-    });
+  document.getElementById("btnStop").onclick = async () => {
+    if (!confirm("Hentikan bot? Sesi login tetap tersimpan.")) return;
+    await fetch(BACKEND_URL + "/api/stop", { method: "POST" });
   };
+
+  document.getElementById("btnClear").onclick = async () => {
+    if (!confirm("Hapus sesi login? Kamu harus pairing/scan ulang dari nol.")) return;
+    await fetch(BACKEND_URL + "/api/clear-session", { method: "POST" });
+    connectArea.classList.remove("hidden");
+  };
+
+  // ambil status awal
+  fetch(BACKEND_URL + "/api/status").then((r) => r.json()).then((s) => {
+    isEnabled = s.enabled;
+    isConnected = s.connected;
+    updateBanner();
+    if (s.connected) {
+      setState("connected", "Online", "Bot berhasil terhubung ke WhatsApp 🎉", ICONS.check);
+      connectArea.classList.add("hidden");
+    } else if (s.hasSession) {
+      setState("off", "Terputus", "Sesi tersimpan, tekan Start untuk lanjut", ICONS.off);
+    } else {
+      setState("off", "Belum Terhubung", "Pilih metode koneksi di bawah", ICONS.off);
+    }
+  }).catch(() => {});
 </script>
 </body>
-          </html>
+  </html>
+  

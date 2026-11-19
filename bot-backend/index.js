@@ -32,6 +32,8 @@ app.get('/api/status', (req, res) => {
   res.json({ connected: baileysConn.getStatus(), hasSession: baileysConn.hasSavedSession(), ...settings });
 });
 
+// "Start" / "Lanjut": kalau sesi udah ada, langsung konek ulang tanpa perlu nomor.
+// Kalau belum ada sesi, phoneNumber wajib diisi untuk minta pairing code.
 app.post('/api/start', async (req, res) => {
   try {
     const { phoneNumber } = req.body || {};
@@ -90,16 +92,19 @@ app.post('/api/connect-qr', async (req, res) => {
   }
 });
 
+// "Stop": putus koneksi tapi sesi login TETAP disimpan, bisa di-"Start" lagi tanpa scan ulang.
 app.post('/api/stop', (req, res) => {
   baileysConn.stopConnection();
   res.json({ message: 'Bot dihentikan. Sesi login masih tersimpan.' });
 });
 
+// "Hapus Sesi": putus koneksi DAN hapus sesi login, wajib pairing/scan ulang.
 app.post('/api/clear-session', (req, res) => {
   baileysConn.logout();
   res.json({ message: 'Sesi dihapus. Perlu pairing/scan ulang.' });
 });
 
+// backward-compat
 app.post('/api/logout', (req, res) => {
   baileysConn.logout();
   res.json({ message: 'Logout berhasil, sesi dihapus.' });
@@ -133,3 +138,4 @@ server.listen(PORT, () => {
     baileysConn.startConnection(io, handleMessage).catch((e) => console.error(e));
   }
 });
+                      

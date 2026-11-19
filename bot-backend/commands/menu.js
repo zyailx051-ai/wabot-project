@@ -45,7 +45,11 @@ function toolsMenu() {
 .translate <kode> <teks>  – contoh: .translate en halo semua
 .tts <teks>               – text to speech
 .ss <url>                 – screenshot website
-.shortlink <url>          – pendekin link`;
+.shortlink <url>          – pendekin link
+.cuaca <kota>             – cek cuaca kota
+.qrcode <teks/link>       – bikin QR Code
+.kurs <jml> <dari> <ke>   – contoh: .kurs 100 usd idr
+.fakta                    – fakta acak`;
 }
 
 function groupMenu() {

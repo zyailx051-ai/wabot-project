@@ -1,6 +1,8 @@
 const helpers = require('./helpers');
+const { getSettings } = require('./settings');
 const menu = require('../commands/menu');
 const sticker = require('../commands/sticker');
+const meme = require('../commands/meme');
 const downloader = require('../commands/downloader');
 const tools = require('../commands/tools');
 const group = require('../commands/group');
@@ -15,11 +17,21 @@ async function react(sock, jid, msg, emoji) {
   }
 }
 
-async function handleMessage(sock, msg) {
+function emitLog(io, entry) {
+  if (io) io.emit('log', { time: new Date().toISOString(), ...entry });
+}
+
+async function handleMessage(sock, msg, io) {
   const jid = msg.key.remoteJid;
   const senderJid = msg.key.participant || msg.key.remoteJid;
   const text = helpers.getText(msg).trim();
   const pushName = msg.pushName || 'User';
+  const isGroup = jid.endsWith('@g.us');
+
+  const settings = getSettings();
+  if (!settings.enabled) return; // bot lagi di-nonaktifkan dari dashboard
+  if (settings.runMode === 'group' && !isGroup) return;
+  if (settings.runMode === 'dm' && isGroup) return;
 
   if (await group.checkAntilink(sock, msg, jid, senderJid, text)) return;
 
@@ -44,6 +56,7 @@ async function handleMessage(sock, msg) {
     bratvid: () => sticker.cmdBratVid(sock, msg, jid, argText),
     bratvid2: () => sticker.cmdBratVid2(sock, msg, jid, argText),
     iqc: () => sticker.cmdIqc(sock, msg, jid, helpers, argText),
+    smeme: () => meme.cmdSmeme(sock, msg, jid, argText),
 
     tiktok: () => downloader.cmdTiktok(sock, msg, jid, argText),
     tt: () => downloader.cmdTiktok(sock, msg, jid, argText),
@@ -61,6 +74,10 @@ async function handleMessage(sock, msg) {
     tts: () => tools.cmdTts(sock, msg, jid, argText),
     ss: () => tools.cmdScreenshot(sock, msg, jid, argText),
     shortlink: () => tools.cmdShortlink(sock, msg, jid, argText),
+    cuaca: () => tools.cmdWeather(sock, msg, jid, argText),
+    qrcode: () => tools.cmdQrcode(sock, msg, jid, argText),
+    kurs: () => tools.cmdKurs(sock, msg, jid, argText),
+    fakta: () => tools.cmdFakta(sock, msg, jid),
 
     kick: () => group.cmdKick(sock, msg, jid, senderJid),
     add: () => group.cmdAdd(sock, msg, jid, senderJid, argText),
@@ -83,10 +100,12 @@ async function handleMessage(sock, msg) {
   try {
     await run();
     await react(sock, jid, msg, '✅');
+    emitLog(io, { cmd, from: senderJid, jid, status: 'ok' });
   } catch (err) {
     console.error('Command error:', err);
     await react(sock, jid, msg, '❌');
     await sock.sendMessage(jid, { text: '❌ ' + err.message }, { quoted: msg });
+    emitLog(io, { cmd, from: senderJid, jid, status: 'error', message: err.message });
   }
 }
 

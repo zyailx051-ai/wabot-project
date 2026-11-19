@@ -22,9 +22,8 @@ let pairingRequested = false;
 let pairingNumber = null;
 let isConnected = false;
 let starting = false;
+let manualStop = false;
 
-// Simpan pesan yang dikirim bot supaya WhatsApp bisa minta kirim ulang
-// (mencegah "Menunggu pesan ini").
 const sentCache = new Map();
 function rememberSent(res) {
   if (res && res.key && res.key.id && res.message) {
@@ -54,6 +53,16 @@ function messageAgeSeconds(msg) {
 
 function isLinked(creds) {
   return Boolean(creds && (creds.registered || creds.account));
+}
+
+function hasSavedSession() {
+  try {
+    const file = path.join(AUTH_DIR, 'creds.json');
+    const creds = JSON.parse(fs.readFileSync(file, 'utf-8'));
+    return isLinked(creds);
+  } catch (e) {
+    return false;
+  }
 }
 
 async function startConnection(io, handleMessage) {
@@ -118,15 +127,18 @@ async function startConnection(io, handleMessage) {
         isConnected = false;
         const statusCode = new Boom(lastDisconnect?.error)?.output?.statusCode;
         const loggedOut = statusCode === DisconnectReason.loggedOut;
-        emitStatus('disconnected', { loggedOut });
 
-        if (!loggedOut) {
-          setTimeout(() => {
-            if (!isStale()) startConnection(io, handleMessage).catch((e) => console.error(e));
-          }, 3000);
-        } else {
+        if (loggedOut) {
           sock = null;
           fs.rmSync(AUTH_DIR, { recursive: true, force: true });
+          emitStatus('disconnected', { loggedOut: true });
+        } else if (manualStop) {
+          emitStatus('stopped');
+        } else {
+          emitStatus('disconnected', { loggedOut: false });
+          setTimeout(() => {
+            if (!isStale() && !manualStop) startConnection(io, handleMessage).catch((e) => console.error(e));
+          }, 3000);
         }
       }
     });
@@ -142,12 +154,10 @@ async function startConnection(io, handleMessage) {
         for (const msg of m.messages || []) {
           if (!msg || !msg.message) continue;
           if (msg.key.remoteJid === 'status@broadcast') continue;
-          if (messageAgeSeconds(msg) > 60) continue; // abaikan pesan lama (history)
+          if (messageAgeSeconds(msg) > 60) continue;
 
           if (msg.key.fromMe) {
-            // jangan proses pesan yang dikirim bot sendiri
             if (sentCache.has(msg.key.id)) continue;
-            // pesan dari nomor sendiri: hanya proses kalau diawali prefix perintah
             const t = msg.message.conversation || msg.message.extendedTextMessage?.text || '';
             const prefix = process.env.BOT_PREFIX || '.';
             if (!t.startsWith(prefix)) continue;
@@ -156,14 +166,13 @@ async function startConnection(io, handleMessage) {
             }
           }
 
-          await handleMessage(thisSock, msg);
+          await handleMessage(thisSock, msg, ioRef);
         }
       } catch (err) {
         console.error('Error handling message:', err);
       }
     });
 
-    // Minta pairing code (kalau diminta & belum tertaut)
     if (pairingRequested && !isLinked(thisSock.authState.creds) && pairingNumber) {
       try {
         await new Promise((r) => setTimeout(r, 1500));
@@ -181,13 +190,30 @@ async function startConnection(io, handleMessage) {
 }
 
 function requestPairing(number) {
+  manualStop = false;
   pairingRequested = true;
   pairingNumber = number.replace(/[^0-9]/g, '');
 }
 
 function requestQr() {
+  manualStop = false;
   pairingRequested = false;
   pairingNumber = null;
+}
+
+function resume() {
+  manualStop = false;
+  pairingRequested = false;
+  pairingNumber = null;
+}
+
+function stopConnection() {
+  manualStop = true;
+  if (sock) {
+    try { sock.end(undefined); } catch (e) { /* abaikan */ }
+  }
+  isConnected = false;
+  emitStatus('stopped');
 }
 
 function getSock() {
@@ -201,9 +227,21 @@ function getStatus() {
 function logout() {
   const s = sock;
   sock = null;
+  manualStop = true;
   if (s) s.logout().catch(() => {});
   fs.rmSync(AUTH_DIR, { recursive: true, force: true });
   isConnected = false;
+  emitStatus('idle');
 }
 
-module.exports = { startConnection, requestPairing, requestQr, getSock, getStatus, logout };
+module.exports = {
+  startConnection,
+  requestPairing,
+  requestQr,
+  resume,
+  stopConnection,
+  getSock,
+  getStatus,
+  hasSavedSession,
+  logout,
+};

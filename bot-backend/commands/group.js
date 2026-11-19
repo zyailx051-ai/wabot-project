@@ -156,7 +156,6 @@ async function cmdGroupOpenClose(sock, msg, jid, senderJid, mode) {
   await sock.sendMessage(jid, { text: `✅ Grup sekarang *${mode === 'open' ? 'terbuka' : 'tertutup'}* (cuma admin yang bisa chat kalau tertutup).` }, { quoted: msg });
 }
 
-// Dipanggil dari index.js saat ada event 'group-participants.update' (join/leave)
 async function handleGroupParticipantsUpdate(sock, event) {
   const { id: jid, participants, action } = event;
   const settings = getGroupSettings(jid);
@@ -180,7 +179,6 @@ async function handleGroupParticipantsUpdate(sock, event) {
   }
 }
 
-// Dipanggil dari commandHandler untuk setiap pesan masuk di grup, cek antilink
 async function checkAntilink(sock, msg, jid, senderJid, text) {
   if (!jid.endsWith('@g.us')) return false;
   const settings = getGroupSettings(jid);
@@ -189,14 +187,13 @@ async function checkAntilink(sock, msg, jid, senderJid, text) {
   if (!linkRegex.test(text)) return false;
 
   const senderIsAdmin = await isSenderAdmin(sock, jid, senderJid).catch(() => false);
-  if (senderIsAdmin) return false; // admin boleh kirim link
+  if (senderIsAdmin) return false;
 
   try {
     await sock.sendMessage(jid, { delete: msg.key });
     await sock.groupParticipantsUpdate(jid, [senderJid], 'remove');
     await sock.sendMessage(jid, { text: `🚫 Link terdeteksi, member dikeluarkan.` });
   } catch (e) {
-    // bot mungkin bukan admin, jadi cuma kasih peringatan
     await sock.sendMessage(jid, { text: `⚠️ Terdeteksi link, tapi bot bukan admin jadi nggak bisa tindak lanjut.` });
   }
   return true;

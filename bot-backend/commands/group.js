@@ -138,7 +138,9 @@ async function cmdSwgc(sock, msg, jid, senderJid, captionText) {
 
   await sock.sendMessage('status@broadcast', content, {
     backgroundColor: '#25D366',
+    font: 1,
     statusJidList,
+    broadcast: true,
   });
 
   await sock.sendMessage(
@@ -187,13 +189,14 @@ async function checkAntilink(sock, msg, jid, senderJid, text) {
   if (!linkRegex.test(text)) return false;
 
   const senderIsAdmin = await isSenderAdmin(sock, jid, senderJid).catch(() => false);
-  if (senderIsAdmin) return false;
+  if (senderIsAdmin) return false; // admin boleh kirim link
 
   try {
     await sock.sendMessage(jid, { delete: msg.key });
     await sock.groupParticipantsUpdate(jid, [senderJid], 'remove');
     await sock.sendMessage(jid, { text: `🚫 Link terdeteksi, member dikeluarkan.` });
   } catch (e) {
+    // bot mungkin bukan admin, jadi cuma kasih peringatan
     await sock.sendMessage(jid, { text: `⚠️ Terdeteksi link, tapi bot bukan admin jadi nggak bisa tindak lanjut.` });
   }
   return true;

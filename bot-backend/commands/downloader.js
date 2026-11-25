@@ -156,25 +156,62 @@ async function ttTikwm(url, host) {
 }
 
 // ----- sumber 3: API internal TikTok (aweme) lewat ID video -----
-async function ttAweme(fullUrl) {
+const randDigits = (n) => '7' + Array.from({ length: n - 1 }, () => Math.floor(Math.random() * 10)).join('');
+const AWEME_HOSTS = ['api22-normal-c-alisg.tiktokv.com', 'api16-normal-c-useast1a.tiktokv.com', 'api19-normal-c-useast1a.tiktokv.com', 'api31-normal-useast2a.tiktokv.com'];
+function videoIdFrom(fullUrl) {
   const m = fullUrl.match(/\/(?:video|photo)\/(\d{10,})/) || fullUrl.match(/(\d{15,})/);
-  if (!m) throw new Error('ID video nggak ketemu di link');
-  const id = m[1];
+  return m ? m[1] : null;
+}
+async function ttAweme(fullUrl) {
+  const id = videoIdFrom(fullUrl);
+  if (!id) throw new Error('ID video nggak ketemu di link');
   const mobileUA = 'com.zhiliaoapp.musically/300904 (Linux; U; Android 9; en_US; ASUS_Z01QD; Build/PQ3A.190801.002;tt-ok/3.12.13.1)';
-  const { data } = await axios.get('https://api22-normal-c-alisg.tiktokv.com/aweme/v1/feed/', {
-    timeout: 25000,
-    headers: { 'User-Agent': mobileUA },
-    params: { aweme_id: id, iid: '7318518857994389254', device_id: '7318517321748022790', channel: 'googleplay', app_name: 'musical_ly', version_code: '300904', device_platform: 'android', device_type: 'ASUS_Z01QD', os_version: '9', aid: '1128' },
-  });
-  const a = data?.aweme_list?.[0];
-  if (!a || String(a.aweme_id) !== id) throw new Error('video nggak ditemukan / dibatasi');
-  const imgs = a.image_post_info?.images?.map((i) => i.display_image?.url_list?.[0]).filter(Boolean);
-  const vid = a.video?.play_addr?.url_list?.[0] || a.video?.download_addr?.url_list?.[0];
-  if (!vid && !(imgs && imgs.length)) throw new Error('tanpa link video');
-  return {
-    title: a.desc, author: a.author?.nickname, likes: a.statistics?.digg_count, comments: a.statistics?.comment_count,
-    images: imgs && imgs.length ? imgs : null, videoUrl: imgs && imgs.length ? null : vid, headers: { 'User-Agent': mobileUA },
-  };
+  let lastErr = 'tanpa respons';
+  for (const host of AWEME_HOSTS) {
+    try {
+      const { data } = await axios.get(`https://${host}/aweme/v1/feed/`, {
+        timeout: 15000,
+        headers: { 'User-Agent': mobileUA },
+        params: { aweme_id: id, iid: randDigits(19), device_id: randDigits(19), channel: 'googleplay', app_name: 'musical_ly', version_code: '300904', device_platform: 'android', device_type: 'ASUS_Z01QD', os_version: '9', aid: '1128' },
+      });
+      const a = data?.aweme_list?.[0];
+      if (!a || String(a.aweme_id) !== id) { lastErr = 'video nggak ditemukan / dibatasi'; continue; }
+      const imgs = a.image_post_info?.images?.map((i) => i.display_image?.url_list?.[0]).filter(Boolean);
+      const vid = a.video?.play_addr?.url_list?.[0] || a.video?.download_addr?.url_list?.[0];
+      if (!vid && !(imgs && imgs.length)) { lastErr = 'tanpa link video'; continue; }
+      return {
+        title: a.desc, author: a.author?.nickname, likes: a.statistics?.digg_count, comments: a.statistics?.comment_count,
+        images: imgs && imgs.length ? imgs : null, videoUrl: imgs && imgs.length ? null : vid, headers: { 'User-Agent': mobileUA },
+      };
+    } catch (e) {
+      lastErr = shortErr(e);
+    }
+    await sleep(600);
+  }
+  throw new Error(lastErr);
+}
+
+// ----- sumber: Tiklydown -----
+async function ttTiklydown(url) {
+  const { data } = await axios.get('https://api.tiklydown.eu.org/api/download/v3', { params: { url }, timeout: 20000, headers: { 'User-Agent': UA } });
+  const v = data?.video?.noWatermark || data?.video?.watermark;
+  const imgs = Array.isArray(data?.images) ? data.images.map((i) => i.url || i).filter(Boolean) : null;
+  if (!v && !(imgs && imgs.length)) throw new Error('tanpa link video');
+  return { title: data.title || data.desc, author: data.author?.name, videoUrl: imgs && imgs.length ? null : v, images: imgs && imgs.length ? imgs : null, headers: {} };
+}
+
+// ----- sumber: media langsung TikWM (jalur CDN, kadang lolos walau API-nya 403) -----
+async function ttTikwmMedia(fullUrl) {
+  const id = videoIdFrom(fullUrl);
+  if (!id) throw new Error('ID video nggak ketemu');
+  for (const kind of ['hdplay', 'play']) {
+    const u = `https://www.tikwm.com/video/media/${kind}/${id}.mp4`;
+    try {
+      const r = await axios.head(u, { timeout: 15000, headers: { 'User-Agent': UA }, maxRedirects: 5 });
+      if (r.status === 200 && /video|octet/i.test(String(r.headers['content-type'] || ''))) return { title: 'TikTok', videoUrl: u, headers: { Referer: 'https://www.tikwm.com/' } };
+    } catch (e) { /* coba berikutnya */ }
+  }
+  throw new Error('media nggak tersedia');
 }
 
 // ----- sumber 4: LoveTik -----
@@ -190,38 +227,54 @@ async function ttLovetik(url) {
   return { title: data.desc, author: data.author, videoUrl: mp4.a, headers: {} };
 }
 
-async function cmdTiktok(sock, msg, jid, text) {
-  const url = needUrl(sock, msg, jid, text, '.tiktok https://vt.tiktok.com/xxxxx');
-  if (!url) return;
+// Cari media TikTok dari beberapa sumber. Return { r, reasons } atau lempar Error berisi alasan semua sumber.
+async function getTiktokMedia(url) {
   const fullUrl = await resolveTiktokUrl(url);
-
   const sources = [
-    ['TikWM', () => ttTikwm(fullUrl, 'www.tikwm.com')],
-    ['TikWM2', () => ttTikwm(fullUrl, 'tikwm.com')],
     ['TikTok-API', () => ttAweme(fullUrl)],
+    ['Tiklydown', () => ttTiklydown(fullUrl)],
+    ['TikWM', () => ttTikwm(fullUrl, 'www.tikwm.com')],
+    ['TikWM-media', () => ttTikwmMedia(fullUrl)],
     ['LoveTik', () => ttLovetik(fullUrl)],
   ];
   const reasons = [];
   for (const [name, fn] of sources) {
     try {
       const r = await fn();
-      const caption = `🎵 *${r.title || 'TikTok'}*\n👤 ${r.author || '-'}${r.likes != null ? `\n❤️ ${r.likes} | 💬 ${r.comments || 0}` : ''}`;
-      if (r.images) {
-        for (const img of r.images.slice(0, 6)) await sock.sendMessage(jid, { image: await fetchBuffer(img, r.headers) }, { quoted: msg });
-        return sock.sendMessage(jid, { text: caption }, { quoted: msg });
-      }
-      return await sock.sendMessage(jid, { video: await fetchBuffer(r.videoUrl, r.headers), caption }, { quoted: msg });
+      return { r, fullUrl, reasons };
     } catch (e) {
       reasons.push(`${name}: ${shortErr(e)}`);
       console.error(`[tiktok] ${name} gagal:`, e.message);
     }
   }
+  const err = new Error('Semua sumber TikTok gagal');
+  err.reasons = reasons;
+  err.fullUrl = fullUrl;
+  throw err;
+}
+
+async function cmdTiktok(sock, msg, jid, text) {
+  const url = needUrl(sock, msg, jid, text, '.tiktok https://vt.tiktok.com/xxxxx');
+  if (!url) return;
+  let found;
   try {
-    return await downloadAndSend(sock, msg, jid, fullUrl, 'video', '🎵 TikTok');
+    found = await getTiktokMedia(url);
   } catch (e) {
-    reasons.push(`yt-dlp: ${String(e.message).slice(0, 90)}`);
+    const reasons = e.reasons || [];
+    try {
+      return await downloadAndSend(sock, msg, jid, e.fullUrl || url, 'video', '🎵 TikTok');
+    } catch (e2) {
+      reasons.push(`yt-dlp: ${String(e2.message).slice(0, 90)}`);
+    }
+    throw new Error('Semua sumber TikTok gagal:\n• ' + reasons.join('\n• ') + '\n\nKemungkinan besar IP server diblokir TikTok. Coba lagi beberapa menit lagi.');
   }
-  throw new Error('Semua sumber TikTok gagal:\n• ' + reasons.join('\n• ') + '\n\nCoba pastikan videonya publik & linknya benar.');
+  const { r } = found;
+  const caption = `🎵 *${r.title || 'TikTok'}*\n👤 ${r.author || '-'}${r.likes != null ? `\n❤️ ${r.likes} | 💬 ${r.comments || 0}` : ''}`;
+  if (r.images) {
+    for (const img of r.images.slice(0, 6)) await sock.sendMessage(jid, { image: await fetchBuffer(img, r.headers) }, { quoted: msg });
+    return sock.sendMessage(jid, { text: caption }, { quoted: msg });
+  }
+  return sock.sendMessage(jid, { video: await fetchBuffer(r.videoUrl, r.headers), caption }, { quoted: msg });
 }
 
 // ---------- Instagram, Facebook, Twitter/X: yt-dlp ----------
@@ -291,6 +344,5 @@ module.exports = {
   cmdYoutube,
   cmdPlay,
   cmdPinterest,
-  cmdTwitter,
-};
-          
+  cmdTwitter, getTiktokMedia, fetchBuffer };
+  

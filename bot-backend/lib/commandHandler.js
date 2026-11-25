@@ -14,6 +14,10 @@ const uno = require('../commands/uno');
 const ai = require('../commands/ai');
 const iqc = require('../commands/iqc');
 const quoteCmd = require('../commands/quote');
+const memes = require('../commands/memes');
+const stickerExtra = require('../commands/stickerextra');
+const gempa = require('../commands/gempa');
+const antikudeta = require('../commands/antikudeta');
 const aiimage = require('../commands/aiimage');
 const quiz = require('../commands/quiz');
 const sambung = require('../commands/sambung');
@@ -92,6 +96,12 @@ async function handleMessage(sock, msg, io) {
     iqc: () => iqc.cmdIqc(sock, msg, jid, helpers, argText),
     meledak: () => iqc.cmdMeledak(sock, msg, jid, helpers, argText),
     quote: () => quoteCmd.cmdQuote(sock, msg, jid, helpers, argText),
+    qcwa: () => memes.cmdQcwa(sock, msg, jid, senderJid, helpers, argText),
+    jarvismeme: () => memes.cmdJarvisMeme(sock, msg, jid, argText),
+    saudio: () => stickerExtra.cmdSaudio(sock, msg, jid),
+    stickertiktok: () => stickerExtra.cmdStickerTiktok(sock, msg, jid, argText),
+    cekgempa: () => gempa.cmdCekGempa(sock, msg, jid, argText),
+    antikudeta: () => antikudeta.cmdAntiKudeta(sock, msg, jid, senderJid, argText),
     smeme: () => meme.cmdSmeme(sock, msg, jid, argText),
     nokia: () => nexa.cmdNokia(sock, msg, jid, argText, pushName),
 
@@ -171,3 +181,4 @@ async function handleMessage(sock, msg, io) {
 }
 
 module.exports = { handleMessage };
+  

@@ -217,6 +217,9 @@ async function fetchAvatar(sock, jid) {
 async function handleGroupParticipantsUpdate(sock, event) {
   const { id: jid, participants, action } = event;
   const settings = getGroupSettings(jid);
+  if (settings.antikudeta && ['remove', 'promote', 'demote'].includes(action)) {
+    await require('./antikudeta').handleEvent(sock, event).catch((e) => console.error('[antikudeta] error:', e.message));
+  }
   if (action === 'add' && !settings.welcome) return;
   if (action === 'remove' && !settings.goodbye) return;
   if (action !== 'add' && action !== 'remove') return;
@@ -302,4 +305,4 @@ module.exports = {
   checkAntilink,
   isSenderAdmin,
 };
-                       
+  

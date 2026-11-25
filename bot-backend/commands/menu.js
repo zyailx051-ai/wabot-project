@@ -39,6 +39,14 @@ function stickerMenu() {
 │    ↳ kirim foto + caption .meledak
 │ ✦ .quote <teks | warna>
 │    ↳ kutipan teks serif aesthetic
+│ ✦ .qcwa <teks>
+│    ↳ kutipan chat WhatsApp
+│ ✦ .jarvismeme <teks>
+│    ↳ meme banner + gaya JARVIS
+│ ✦ .saudio
+│    ↳ video (maks 10 dtk) jadi stiker + suara
+│ ✦ .stickertiktok <link>
+│    ↳ media TikTok jadi stiker
 │    ↳ kartu quote chat
 │ ✦ .smeme atas|bawah
 │    ↳ meme di foto (1 atau 2 teks)
@@ -71,6 +79,8 @@ function toolsMenu() {
 │ ✦ .qrcode <teks/link>
 │ ✦ .kurs 100 usd idr
 │ ✦ .fakta
+│ ✦ .cekgempa
+│    ↳ info gempa M 5.0+ terbaru (BMKG)
 │
 │ ✨ *Foto & Video*
 │ ✦ .wink
@@ -136,6 +146,9 @@ function groupMenu() {
 │ ✦ .antitagsw on/off
 │ ✦ .welcome on/off (kartu + foto profil)
 │ ✦ .goodbye on/off (kartu perpisahan)
+│ ✦ .antikudeta on/off
+│    ↳ lindungi grup dari admin nakal
+│    ↳ .antikudeta wl add @user
 │ ✦ .setwelcome <teks>
 │ ✦ .setdeskripsi <teks>
 │ ✦ .swgc

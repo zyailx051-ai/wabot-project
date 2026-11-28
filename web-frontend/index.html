@@ -3,322 +3,271 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0c0d10">
-<title>Koneksi WhatsApp</title>
+<title>WaBot — bot WhatsApp serba bisa</title>
+<meta name="description" content="WaBot: bot WhatsApp untuk stiker, download video, AI, game, dan alat grup. Sambungkan nomormu dalam hitungan detik.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.8.1/socket.io.min.js"></script>
 <style>
-:root{--bg:#0c0d10;--card:rgba(24,26,31,.78);--line:rgba(255,255,255,.09);--tx:#f3f5f4;--mut:#8d939b;--ac:#c8f542;--ac2:#4ade9f;--acx:#111500;--ok:#3ddc97;--bad:#ff6b6b;--warn:#ffc857}
-@media (prefers-color-scheme:light){:root{--bg:#f2f4ef;--card:rgba(255,255,255,.86);--line:rgba(0,0,0,.09);--tx:#14171a;--mut:#667078;--ac:#9fd10f;--ac2:#14b87a;--acx:#121600;--ok:#10a96b;--bad:#e5484d;--warn:#d98b00}}
-*{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
-html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-body{background:var(--bg);color:var(--tx);font-family:Inter,system-ui,sans-serif;min-height:100vh;overflow-x:hidden}
-svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
-/* latar bergerak */
-.bg{position:fixed;inset:0;z-index:-1;overflow:hidden}
-.bg i{position:absolute;border-radius:50%;filter:blur(70px);opacity:.35;animation:float 16s ease-in-out infinite}
-.bg i:nth-child(1){width:320px;height:320px;background:var(--ac);top:-90px;left:-80px}
-.bg i:nth-child(2){width:280px;height:280px;background:var(--ac2);bottom:-60px;right:-70px;animation-delay:-6s}
-.bg i:nth-child(3){width:200px;height:200px;background:#7c5cff;top:45%;left:55%;opacity:.2;animation-delay:-11s}
-@keyframes float{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(40px,30px) scale(1.12)}66%{transform:translate(-30px,50px) scale(.94)}}
-.wrap{max-width:560px;margin:0 auto;padding:0 18px 44px}
-header{display:flex;align-items:center;justify-content:space-between;padding:16px 0;margin-bottom:22px;animation:rise .6s both}
-.brand{display:flex;align-items:center;gap:11px;font-weight:800;font-size:21px}
-.logo{width:36px;height:36px;border-radius:11px;background:var(--ac);color:var(--acx);display:grid;place-items:center;font-size:21px;animation:glow 3s ease-in-out infinite}
-@keyframes glow{0%,100%{box-shadow:0 0 0 0 rgba(200,245,66,.5)}50%{box-shadow:0 0 0 9px rgba(200,245,66,0)}}
-.iconbtn{width:42px;height:42px;border-radius:13px;border:1px solid var(--line);background:var(--card);backdrop-filter:blur(10px);color:var(--tx);display:grid;place-items:center;text-decoration:none;font-size:20px;transition:transform .3s,border-color .3s}
-.iconbtn:hover svg{animation:spin 1.2s linear}
-.iconbtn:active{transform:scale(.92)}
-h1{font-size:35px;font-weight:800;letter-spacing:-.02em;line-height:1.1;background:linear-gradient(90deg,var(--tx),var(--ac),var(--tx));background-size:220% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:rise .6s .08s both,shine 6s linear infinite}
-@keyframes shine{to{background-position:-220% 0}}
-.sub{color:var(--mut);margin:10px 0 22px;line-height:1.5;animation:rise .6s .16s both}
-.card{background:var(--card);backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:22px;margin-bottom:16px;overflow:hidden;animation:rise .7s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i,0)*90ms + 200ms)}
-@keyframes rise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
-.banner{display:inline-flex;align-items:center;gap:9px;padding:10px 15px;border-radius:99px;font-weight:600;font-size:13.5px;border:1px solid var(--line);background:var(--card);margin-bottom:16px;transition:color .4s;animation:rise .6s .2s both}
-.dot{width:9px;height:9px;border-radius:50%;background:var(--mut);position:relative;transition:background .4s}
-.banner.on .dot{background:var(--ok)}.banner.on .dot::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:2px solid var(--ok);animation:ping 1.6s ease-out infinite}
-.banner.off .dot{background:var(--bad)}
-@keyframes ping{from{transform:scale(.5);opacity:.9}to{transform:scale(1.7);opacity:0}}
-.row{padding:20px 22px;display:flex;justify-content:space-between;align-items:center;gap:14px}
-.lbl{color:var(--mut);font-size:14px}
-.val{font-size:30px;font-weight:800;margin-top:3px;transition:color .4s}
-.val.on{color:var(--ok)}.val.wait{color:var(--warn)}.val.err{color:var(--bad)}
-.orb{width:58px;height:58px;border-radius:18px;background:rgba(127,127,127,.12);display:grid;place-items:center;font-size:28px;position:relative;transition:background .4s,color .4s;flex:none}
-.orb.on{background:rgba(61,220,151,.16);color:var(--ok)}.orb.wait{background:rgba(255,200,87,.15);color:var(--warn)}.orb.err{background:rgba(255,107,107,.15);color:var(--bad);animation:shake .5s}
-.orb.on::after{content:"";position:absolute;inset:0;border-radius:18px;border:2px solid var(--ok);animation:ping 2s ease-out infinite}
-.orb .spin{animation:spin 1s linear infinite}
-.orb .draw path{stroke-dasharray:1;stroke-dashoffset:1;animation:draw .6s .1s ease forwards}
-@keyframes draw{to{stroke-dashoffset:0}}
-@keyframes spin{to{transform:rotate(360deg)}}
-@keyframes shake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
-.bars{display:flex;gap:4px;align-items:flex-end;height:18px;margin-top:10px}
-.bars b{width:5px;border-radius:3px;background:var(--mut);opacity:.4;transition:background .4s}
-.bars b:nth-child(1){height:6px}.bars b:nth-child(2){height:10px}.bars b:nth-child(3){height:14px}.bars b:nth-child(4){height:18px}
-.on-bars .bars b{background:var(--ok);opacity:1;animation:bar 1.4s ease-in-out infinite}
-.on-bars .bars b:nth-child(2){animation-delay:.15s}.on-bars .bars b:nth-child(3){animation-delay:.3s}.on-bars .bars b:nth-child(4){animation-delay:.45s}
-@keyframes bar{50%{transform:scaleY(.55)}}
-.pad{padding:22px}.pad h3{font-size:18px;display:flex;align-items:center;gap:9px}.pad p{color:var(--mut);font-size:14px;margin:4px 0 16px}
-.tabs{position:relative;display:grid;grid-template-columns:1fr 1fr;padding:5px;border:1px solid var(--line);border-radius:15px;margin-bottom:18px}
-.pill{position:absolute;top:5px;bottom:5px;left:5px;width:calc(50% - 5px);border-radius:11px;background:var(--ac);transition:transform .4s cubic-bezier(.3,1.3,.5,1)}
-.tabs.k .pill{transform:translateX(100%)}
-.tab{position:relative;z-index:1;border:0;background:none;color:var(--mut);font:600 14px Inter,sans-serif;padding:11px 8px;border-radius:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:color .3s}
-.tab.active{color:var(--acx)}.tab svg{font-size:18px}
-.pane{animation:rise .45s both}
-input{width:100%;padding:15px;border-radius:13px;border:1px solid var(--line);background:rgba(127,127,127,.08);color:var(--tx);font:500 15px Inter,sans-serif;margin-bottom:12px;outline:none;transition:border-color .3s,box-shadow .3s}
-input:focus{border-color:var(--ac);box-shadow:0 0 0 4px rgba(200,245,66,.15)}
-.btn{position:relative;overflow:hidden;width:100%;padding:15px;border:0;border-radius:13px;background:var(--ac);color:var(--acx);font:700 15px Inter,sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;transition:transform .2s}
+:root{--bg:#0b110f;--panel:#111b17;--line:#22322b;--tx:#e9f2ed;--mu:#8fa69a;--ac:#3ddc97;--acd:#06241a;--warn:#f2b84b;--bad:#ef6a6a;--r:14px}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.6 "DM Sans",system-ui,sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+h1,h2,h3{font-family:"Bricolage Grotesque","DM Sans",sans-serif;line-height:1.1;margin:0}
+.wrap{max-width:720px;margin:0 auto;padding:0 20px}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.top{display:flex;justify-content:space-between;align-items:center;padding:18px 0}
+.logo{font-family:"Bricolage Grotesque";font-weight:800;font-size:20px;letter-spacing:-.02em}
+.logo i{color:var(--ac);font-style:normal}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:999px;padding:14px 26px;font-weight:700;cursor:pointer;background:var(--ac);color:var(--acd);transition:transform .15s,opacity .15s}
 .btn:active{transform:scale(.97)}
-.btn::after{content:"";position:absolute;top:0;left:-70%;width:50%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.55),transparent);transform:skewX(-20deg);animation:sweep 4.5s ease-in-out infinite}
-@keyframes sweep{0%,60%{left:-70%}100%{left:140%}}
-.btn.loading{pointer-events:none;opacity:.8}.btn.loading svg{animation:spin .9s linear infinite}
-.qrwrap{position:relative;width:236px;max-width:100%;aspect-ratio:1;margin:18px auto 4px;display:grid;place-items:center}
-.qrwrap img{width:100%;height:100%;border-radius:16px;background:#fff;padding:12px;animation:pop .5s cubic-bezier(.3,1.4,.5,1)}
-@keyframes pop{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:none}}
-.qrwrap .ph{font-size:70px;color:var(--mut);opacity:.35;animation:breathe 2.4s ease-in-out infinite}
-@keyframes breathe{50%{opacity:.7;transform:scale(.94)}}
-.qrwrap u{position:absolute;width:30px;height:30px;border:3px solid var(--ac);animation:corner 2.2s ease-in-out infinite}
-.qrwrap u:nth-of-type(1){top:0;left:0;border-right:0;border-bottom:0;border-radius:11px 0 0 0}
-.qrwrap u:nth-of-type(2){top:0;right:0;border-left:0;border-bottom:0;border-radius:0 11px 0 0}
-.qrwrap u:nth-of-type(3){bottom:0;left:0;border-right:0;border-top:0;border-radius:0 0 0 11px}
-.qrwrap u:nth-of-type(4){bottom:0;right:0;border-left:0;border-top:0;border-radius:0 0 11px 0}
-@keyframes corner{50%{transform:scale(.82)}}
-.qrwrap s{position:absolute;left:8px;right:8px;height:3px;border-radius:2px;background:linear-gradient(90deg,transparent,var(--ac),transparent);box-shadow:0 0 14px var(--ac);animation:scan 2.4s ease-in-out infinite}
-@keyframes scan{0%,100%{top:8%}50%{top:90%}}
-#pairCode{display:flex;justify-content:center;gap:6px;margin-top:16px;flex-wrap:wrap}
-.ch{width:34px;height:46px;border-radius:10px;background:rgba(127,127,127,.12);border:1px solid var(--line);display:grid;place-items:center;font:800 24px ui-monospace,monospace;color:var(--ac);animation:flip .55s both}
-.ch.sep{width:12px;background:none;border:0;color:var(--mut)}
-@keyframes flip{from{opacity:0;transform:perspective(300px) rotateX(-90deg)}to{opacity:1;transform:none}}
-.hint{color:var(--mut);font-size:13px;margin-top:12px;line-height:1.5;text-align:center}
-.counter{display:flex;align-items:center;gap:16px;padding:22px}
-.counter .ico{width:54px;height:54px;border-radius:16px;background:rgba(200,245,66,.14);color:var(--ac);display:grid;place-items:center;font-size:27px;animation:bob 3s ease-in-out infinite}
-@keyframes bob{50%{transform:translateY(-4px)}}
-.num{font-size:44px;font-weight:800;color:var(--ac);line-height:1;font-variant-numeric:tabular-nums}
-.num.bump{animation:bump .5s}
-@keyframes bump{40%{transform:scale(1.25)}}
-.logbox{max-height:230px;overflow:auto;padding:0 22px 18px;font:12.5px ui-monospace,monospace;color:var(--mut)}
-.log{display:flex;gap:9px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line);animation:slide .4s both}
-.log svg{font-size:15px;margin-top:1px;color:var(--ok)}.log.error svg{color:var(--bad)}
-@keyframes slide{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:none}}
-.btnrow{display:flex;gap:10px;animation:rise .7s .85s both}
-.btn2{flex:1;padding:13px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--tx);font:600 13.5px Inter,sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:transform .2s,border-color .3s}
-.btn2:active{transform:scale(.95)}.btn2:hover svg{animation:wiggle .5s}.btn2.d{color:var(--bad)}
-@keyframes wiggle{25%{transform:rotate(-14deg)}75%{transform:rotate(14deg)}}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--tx)}
+.btn.warn{background:var(--warn);color:#2b1d00}
+.btn.bad{background:transparent;border:1px solid #5a2c2c;color:var(--bad)}
+.btn.sm{padding:10px 16px;font-size:14px}
 .hidden{display:none!important}
-@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+/* beranda */
+.hero{padding:44px 0 36px}
+.hero h1{font-size:clamp(56px,16vw,104px);font-weight:800;letter-spacing:-.05em}
+.hero p{font-size:19px;color:var(--mu);max-width:30ch;margin:16px 0 28px}
+.count{margin-top:18px;color:var(--mu);font-size:15px}
+.count b{color:var(--tx);font-size:22px;font-family:"Bricolage Grotesque";margin-right:4px}
+.sec{padding:34px 0;border-top:1px solid var(--line)}
+.sec>h2{font-size:26px;margin-bottom:6px}
+.sec>.sub{color:var(--mu);margin:0 0 20px}
+.feat{display:grid;gap:0}
+.feat div{display:grid;grid-template-columns:1fr;gap:2px;padding:14px 0 14px 16px;border-left:3px solid var(--line)}
+.feat div:hover{border-color:var(--ac)}
+.feat b{font-size:17px}
+.feat span{color:var(--mu);font-size:15px}
+code,.cmd{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.88em;background:#16231d;border:1px solid var(--line);border-radius:6px;padding:1px 6px;color:var(--ac)}
+.how{display:grid;gap:10px}
+.how p{margin:0;padding:14px 16px;background:var(--panel);border-radius:var(--r)}
+@media(min-width:640px){.feat{grid-template-columns:1fr 1fr;column-gap:28px}}
+
+/* sambungkan */
+.back{background:none;border:0;color:var(--mu);cursor:pointer;padding:6px 0;font-size:15px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:24px;margin:14px 0}
+.card h2{font-size:26px;margin-bottom:4px}
+.card .sub{color:var(--mu);margin:0 0 20px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:#0b130f;border:1px solid var(--line);border-radius:12px;padding:4px;margin-bottom:18px}
+.seg button{border:0;background:none;border-radius:9px;padding:11px;cursor:pointer;color:var(--mu);font-weight:500}
+.seg button[aria-pressed=true]{background:var(--ac);color:var(--acd);font-weight:700}
+label{display:block;font-size:14px;color:var(--mu);margin-bottom:8px}
+.phone{display:flex;align-items:stretch;background:#0b130f;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:16px}
+.phone:focus-within{border-color:var(--ac)}
+.phone span{padding:0 14px;display:flex;align-items:center;gap:6px;border-right:1px solid var(--line);color:var(--mu);white-space:nowrap}
+.phone input{flex:1;min-width:0;background:none;border:0;padding:15px 14px;font-size:17px;letter-spacing:.04em;outline:0}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:#16231d;font-size:14px;margin-bottom:16px}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--mu)}
+.pill[data-s=ok] .dot{background:var(--ac)} .pill[data-s=wait] .dot{background:var(--warn);animation:p 1.2s infinite} .pill[data-s=err] .dot{background:var(--bad)}
+@keyframes p{50%{opacity:.3}}
+.code{font-family:ui-monospace,Menlo,monospace;font-size:clamp(34px,11vw,52px);font-weight:700;letter-spacing:.12em;text-align:center;padding:22px 8px;background:#0b130f;border:1px dashed var(--ac);border-radius:16px;margin:6px 0 14px;color:var(--ac);word-break:break-all}
+.qr{display:block;margin:6px auto 14px;width:min(260px,100%);border-radius:14px;background:#fff;padding:10px}
+.note{color:var(--mu);font-size:14px;margin:0 0 14px}
+.err{color:var(--bad);font-size:14px;margin:0 0 12px}
+.row{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
+.who{font-size:20px;font-weight:700;margin:0 0 4px}
+ol.steps{padding-left:0;margin:0;list-style:none;counter-reset:s;display:grid;gap:12px}
+ol.steps li{counter-increment:s;display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:start}
+ol.steps li:before{content:counter(s);display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:#16231d;color:var(--ac);font-weight:700}
+details{border-top:1px solid var(--line);padding:14px 0}
+summary{cursor:pointer;font-weight:700}
+details p{color:var(--mu);margin:10px 0 0}
+h3{font-size:18px;margin:22px 0 12px}
+footer{padding:36px 0 44px;color:var(--mu);font-size:14px}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
 <body>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <symbol id="i-bot" viewBox="0 0 24 24"><rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 8V5"/><circle cx="12" cy="3.8" r="1"/><path d="M3 12.5v3M21 12.5v3M10 16.5h4"/><circle cx="9.5" cy="12.8" r=".7" fill="currentColor"/><circle cx="14.5" cy="12.8" r=".7" fill="currentColor"/></symbol>
-  <symbol id="i-qr" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.6"/><rect x="14" y="3" width="7" height="7" rx="1.6"/><rect x="3" y="14" width="7" height="7" rx="1.6"/><path d="M14 14h3v3h-3zM20 14v.01M17 20h4M20 17v.01"/></symbol>
-  <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15.5" r="4"/><path d="M11 12.5L20 3.5M16 7.5l3 3M13.5 10l2 2"/></symbol>
-  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 3-6 6.5-6s6.5 2.4 6.5 6"/><circle cx="17.5" cy="9" r="2.5"/><path d="M17 14c2.8 0 4.5 1.8 4.5 4.5"/></symbol>
-  <symbol id="i-term" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3.5"/><path d="M7 10l3 2.5L7 15M12.5 15H17"/></symbol>
-  <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1.3"/><rect x="14" y="5" width="4" height="14" rx="1.3"/></symbol>
-  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13M10 11v5M14 11v5"/></symbol>
-  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"/></symbol>
-  <symbol id="i-check" viewBox="0 0 24 24"><path pathLength="1" d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
-  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.01"/></symbol>
-  <symbol id="i-load" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9"/></symbol>
-  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 3L5 13.5h6L10 21l8-10.5h-6z"/></symbol>
-</svg>
-<div class="bg"><i></i><i></i><i></i></div>
-<div class="wrap">
-  <header>
-    <div class="brand"><span class="logo"><svg class="i"><use href="#i-bot"/></svg></span>Bot WA</div>
-    <a class="iconbtn" href="dashboard.html" aria-label="Pengaturan"><svg class="i"><use href="#i-gear"/></svg></a>
-  </header>
 
-  <h1>Koneksi WhatsApp</h1>
-  <p class="sub">Tautkan nomor WhatsApp ke bot ini, lalu pantau lognya.</p>
-  <div class="banner" id="banner"><span class="dot"></span><span id="bannerTx">Bot Belum Terhubung</span></div>
+<!-- ============ BERANDA ============ -->
+<main id="home" class="wrap">
+  <div class="top"><div class="logo">wa<i>bot</i></div></div>
 
-  <div class="card" style="--i:1" id="statusCard">
+  <section class="hero">
+    <h1>WaBot</h1>
+    <p>Bot WhatsApp buat bikin stiker, download video, ngobrol sama AI, dan main game bareng grup.</p>
+    <button class="btn" id="startBtn">Mulai</button>
+    <div class="count"><b id="count">0</b> orang sudah menyambungkan bot</div>
+  </section>
+
+  <section class="sec">
+    <h2>Bisa apa aja?</h2>
+    <p class="sub">Beberapa fitur yang bisa langsung kamu pakai.</p>
+    <div class="feat">
+      <div><b>Stiker</b><span><code>.sticker</code> <code>.brat</code> <code>.bratvid2</code> <code>.saudio</code> <code>.stickertiktok</code></span></div>
+      <div><b>Download</b><span><code>.tiktok</code> <code>.ig</code> <code>.yt</code> <code>.play</code> — video dan lagu tanpa ribet.</span></div>
+      <div><b>AI</b><span><code>.ai</code> buat ngobrol, plus ubah foto jadi anime, kartun, atau hapus background.</span></div>
+      <div><b>Alat grup</b><span>Anti-link, pesan sambutan, dan perlindungan grup dari pengambilalihan admin.</span></div>
+      <div><b>Game</b><span>UNO, kuis, dan sambung kata yang bisa dimainkan rame-rame di grup.</span></div>
+      <div><b>Gambar &amp; meme</b><span><code>.nokia</code> <code>.iqc</code> <code>.quote</code> <code>.smeme</code> — bikin tampilan chat dan meme sendiri.</span></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>Cara pakainya</h2>
+    <p class="sub">Setelah tersambung, bot langsung aktif di nomormu.</p>
+    <div class="how">
+      <p>Ketik <code>.menu</code> di chat mana saja untuk melihat semua perintah.</p>
+      <p>Balas foto atau video dengan <code>.sticker</code> untuk dijadikan stiker.</p>
+      <p>Di grup, kamu bisa pakai <code>.menugroup</code> untuk atur anti-link dan sambutan.</p>
+    </div>
+  </section>
+  <footer>WaBot · Nomormu tetap milikmu. Kamu bisa menghentikan atau menghapus sesi kapan saja.</footer>
+</main>
+
+<!-- ============ SAMBUNGKAN ============ -->
+<main id="connect" class="wrap hidden">
+  <div class="top"><button class="back" id="backBtn">← Beranda</button><div class="logo">wa<i>bot</i></div></div>
+
+  <div class="card">
+    <div class="pill" id="pill" data-s="idle"><span class="dot"></span><span id="pillTx">Menghubungi server…</span></div>
+
+    <!-- form -->
+    <div id="vForm">
+      <h2>Sambungkan WhatsApp</h2>
+      <p class="sub">Pilih cara menautkan nomormu.</p>
+      <div class="seg" role="group" aria-label="Metode">
+        <button type="button" id="mPair" aria-pressed="true">Kode pairing</button>
+        <button type="button" id="mQr" aria-pressed="false">Kode QR</button>
+      </div>
+      <div id="phoneBox">
+        <label for="num">Nomor WhatsApp</label>
+        <div class="phone"><span>🇮🇩 +62</span><input id="num" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="81234567890"></div>
+      </div>
+      <p class="err hidden" id="err"></p>
+      <button class="btn" id="goBtn" style="width:100%">Lanjutkan</button>
+    </div>
+
+    <!-- hasil -->
+    <div id="vPair" class="hidden">
+      <h2>Masukkan kode ini</h2>
+      <p class="sub">Buka WhatsApp → Perangkat tertaut → Tautkan perangkat → Tautkan dengan nomor telepon.</p>
+      <div class="code" id="codeBox">----</div>
+      <div class="row"><button class="btn sm" id="copyBtn">Salin kode</button><button class="btn ghost sm" data-cancel>Batal</button></div>
+    </div>
+    <div id="vQr" class="hidden">
+      <h2>Pindai kode QR</h2>
+      <p class="sub">Buka WhatsApp → Perangkat tertaut → Tautkan perangkat, lalu arahkan kamera ke QR ini.</p>
+      <img class="qr" id="qrImg" alt="Kode QR WhatsApp">
+      <div class="row"><button class="btn ghost sm" data-cancel>Batal</button></div>
+    </div>
+    <div id="vOk" class="hidden">
+      <h2>Bot sudah aktif</h2>
+      <p class="who" id="who"></p>
+      <p class="sub">Coba kirim <code>.menu</code> dari chat mana saja.</p>
+    </div>
+    <div id="vWait" class="hidden"><h2>Menyiapkan koneksi…</h2><p class="sub">Biasanya butuh beberapa detik.</p><div class="row"><button class="btn ghost sm" data-cancel>Batal</button></div></div>
+  </div>
+
+  <div class="card hidden" id="ctrl">
+    <h3 style="margin-top:0">Kontrol bot</h3>
+    <p class="note">Hentikan bot sementara tanpa kehilangan sesi, atau hapus sesi untuk menautkan ulang.</p>
     <div class="row">
-      <div>
-        <div class="lbl">Status</div>
-        <div class="val" id="statusLabel">Offline</div>
-        <div class="lbl" id="statusDetail" style="margin-top:6px;font-size:13px">Menghubungkan ke server...</div>
-        <div class="bars"><b></b><b></b><b></b><b></b></div>
-      </div>
-      <div class="orb" id="orb"><svg class="i" id="orbIcon"><use href="#i-bot"/></svg></div>
+      <button class="btn sm" id="bStart">Jalankan</button>
+      <button class="btn warn sm" id="bStop">Hentikan</button>
+      <button class="btn bad sm" id="bClear">Hapus sesi</button>
     </div>
   </div>
 
-  <div class="card" style="--i:2" id="connectArea">
-    <div class="pad">
-      <h3><svg class="i"><use href="#i-bolt"/></svg>Cara menautkan</h3>
-      <p>Pilih cara menyambungkan bot ke WhatsApp.</p>
-      <div class="tabs" id="tabs">
-        <span class="pill"></span>
-        <button class="tab active" id="tabQr"><svg class="i"><use href="#i-qr"/></svg>Pindai QR</button>
-        <button class="tab" id="tabPair"><svg class="i"><use href="#i-key"/></svg>Kode tautan</button>
-      </div>
-
-      <div id="qrPane" class="pane">
-        <button class="btn" id="btnGenQr"><svg class="i"><use href="#i-qr"/></svg>Buat QR Code</button>
-        <div class="qrwrap" id="qrBox"><u></u><u></u><u></u><u></u><s></s><svg class="i ph"><use href="#i-qr"/></svg></div>
-        <div class="hint">WhatsApp &rarr; Perangkat Tertaut &rarr; Tautkan Perangkat, lalu scan.</div>
-      </div>
-
-      <div id="pairPane" class="pane hidden">
-        <input type="tel" id="phoneInput" placeholder="Nomor WA, contoh: 628123456789">
-        <button class="btn" id="btnStart"><svg class="i"><use href="#i-key"/></svg>Minta Kode Tautan</button>
-        <div id="pairCode"></div>
-        <div class="hint">WhatsApp &rarr; Perangkat Tertaut &rarr; Tautkan dengan nomor telepon, lalu masukkan kodenya.</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="card" style="--i:3">
-    <div class="counter">
-      <div class="ico"><svg class="i"><use href="#i-users"/></svg></div>
-      <div><div class="num" id="totalLinked">0</div><div class="lbl">orang sudah menyambungkan bot ini</div></div>
-    </div>
-  </div>
-
-  <div class="card" style="--i:4">
-    <div class="pad" style="padding-bottom:10px"><h3><svg class="i"><use href="#i-term"/></svg>Log Aktivitas</h3></div>
-    <div class="logbox" id="logBox"><div id="logEmpty" style="padding-bottom:8px">Belum ada aktivitas.</div></div>
-  </div>
-
-  <div class="btnrow">
-    <button class="btn2" id="btnStop"><svg class="i"><use href="#i-pause"/></svg>Stop</button>
-    <button class="btn2 d" id="btnClear"><svg class="i"><use href="#i-trash"/></svg>Hapus Sesi</button>
-  </div>
-</div>
+  <section class="sec">
+    <h2>Cara menyambungkan</h2>
+    <h3>Dengan kode pairing</h3>
+    <ol class="steps">
+      <li><span>Pilih <b>Kode pairing</b>, isi nomor WhatsApp tanpa angka 0 di depan, lalu tekan <b>Lanjutkan</b>.</span></li>
+      <li><span>Tunggu kode 8 karakter muncul di layar.</span></li>
+      <li><span>Di HP, buka WhatsApp → <b>Perangkat tertaut</b> → <b>Tautkan perangkat</b> → <b>Tautkan dengan nomor telepon saja</b>.</span></li>
+      <li><span>Masukkan kodenya. Kalau berhasil, halaman ini berubah jadi “Bot sudah aktif”.</span></li>
+    </ol>
+    <h3>Dengan kode QR</h3>
+    <ol class="steps">
+      <li><span>Pilih <b>Kode QR</b> lalu tekan <b>Lanjutkan</b>.</span></li>
+      <li><span>Buka WhatsApp di HP lain atau pakai fitur tangkapan layar, lalu pindai QR lewat <b>Tautkan perangkat</b>.</span></li>
+    </ol>
+    <h3>Pertanyaan umum</h3>
+    <details><summary>Apakah nomorku aman?</summary><p>Bot hanya berjalan sebagai perangkat tertaut. Kamu bisa menghapus sesi dari sini atau dari menu Perangkat tertaut di WhatsApp kapan saja.</p></details>
+    <details><summary>Kode pairing tidak muncul?</summary><p>Pastikan nomor benar dan WhatsApp sudah versi terbaru. Tekan <b>Batal</b>, lalu coba lagi atau pakai kode QR.</p></details>
+    <details><summary>Bot tidak membalas?</summary><p>Cek status di atas. Kalau “Terputus”, tekan <b>Jalankan</b>. Perintah selalu diawali titik, misalnya <code>.menu</code>.</p></details>
+    <details><summary>Bagaimana kalau mau berhenti?</summary><p>Tekan <b>Hapus sesi</b>, atau hapus perangkat “WhatsApp Web / Ubuntu” dari Perangkat tertaut di HP.</p></details>
+  </section>
+  <footer>Sesi ini terikat ke browser kamu. Buka halaman dari browser yang sama untuk mengelola bot.</footer>
+</main>
 
 <script>
-const BACKEND_URL = "https://wabot-project-production.up.railway.app";
+const API = "https://wabot-project-production.up.railway.app";
 const $ = (id) => document.getElementById(id);
-const socket = io(BACKEND_URL, { transports: ["websocket"] });
-let isEnabled = true, isConnected = false, shown = 0;
+let sid; try { sid = localStorage.getItem("wabot_sid"); } catch (e) {}
+if (!sid) { sid = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2)).replace(/[^a-zA-Z0-9-]/g, ""); try { localStorage.setItem("wabot_sid", sid); } catch (e) {} }
 
-const ICON = { idle: "i-bot", wait: "i-load", on: "i-check", err: "i-alert", stop: "i-pause" };
-function setState(kind, label, detail) {
-  const cls = kind === "idle" || kind === "stop" ? "" : kind;
-  $("statusLabel").className = "val " + cls;
-  $("statusLabel").textContent = label;
-  $("statusDetail").textContent = detail;
-  const orb = $("orb");
-  orb.className = "orb " + cls;
-  orb.innerHTML = `<svg class="i ${kind === "wait" ? "spin" : kind === "on" ? "draw" : ""}" id="orbIcon"><use href="#${ICON[kind]}"/></svg>`;
-  $("statusCard").classList.toggle("on-bars", kind === "on");
-}
-function updateBanner() {
-  const b = $("banner");
-  const on = isEnabled && isConnected;
-  b.className = "banner " + (on ? "on" : !isEnabled ? "off" : "");
-  $("bannerTx").textContent = on ? "Bot Aktif & Terhubung" : !isEnabled ? "Bot Dinonaktifkan (lihat Pengaturan)" : "Bot Belum Terhubung";
-}
-function countTo(n) {
-  n = Number(n || 0);
-  const el = $("totalLinked"), from = shown;
-  if (n === from) return el.textContent = n.toLocaleString("id-ID");
-  const t0 = performance.now(), dur = 900;
-  const step = (t) => {
-    const p = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - p, 3);
-    el.textContent = Math.round(from + (n - from) * e).toLocaleString("id-ID");
-    if (p < 1) requestAnimationFrame(step); else { shown = n; el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump"); }
-  };
-  requestAnimationFrame(step);
-}
-function showCode(code) {
-  const box = $("pairCode"); box.innerHTML = "";
-  [...String(code).replace(/-/g, "")].forEach((c, i) => {
-    if (i === 4) { const s = document.createElement("span"); s.className = "ch sep"; s.textContent = "-"; s.style.animationDelay = "280ms"; box.appendChild(s); }
-    const s = document.createElement("span"); s.className = "ch"; s.textContent = c; s.style.animationDelay = i * 70 + "ms"; box.appendChild(s);
-  });
-}
-function addLog(e) {
-  $("logEmpty")?.remove();
-  const d = document.createElement("div");
-  d.className = "log " + (e.status || "");
-  const t = new Date(e.time).toLocaleTimeString("id-ID");
-  d.innerHTML = `<svg class="i"><use href="#${e.status === "ok" ? "i-check" : "i-alert"}"/></svg><span></span>`;
-  d.querySelector("span").textContent = `[${t}] .${e.cmd} dari ${String(e.from || "").split("@")[0]} — ${e.status === "ok" ? "berhasil" : "error: " + (e.message || "")}`;
-  $("logBox").prepend(d);
-  while ($("logBox").children.length > 50) $("logBox").lastChild.remove();
-}
-function busy(btn, on) { btn.classList.toggle("loading", on); }
+let method = "pair", state = "idle", hasSession = false;
+const views = ["vForm", "vPair", "vQr", "vOk", "vWait"];
+function show(v) { views.forEach((x) => $(x).classList.toggle("hidden", x !== v)); }
+function pill(s, t) { $("pill").dataset.s = s; $("pillTx").textContent = t; }
+function setErr(m) { $("err").textContent = m || ""; $("err").classList.toggle("hidden", !m); }
+function ctrl() { $("ctrl").classList.toggle("hidden", !(hasSession || state === "connected")); }
 
-setState("idle", "Offline", "Menghubungkan ke server...");
-socket.on("connect", () => setState("idle", "Server Online", "Pilih cara menautkan di bawah"));
-socket.on("disconnect", () => setState("err", "Offline", "Server tidak terjangkau"));
-socket.on("settings", (s) => { isEnabled = s.enabled; updateBanner(); });
+function render(s, d = {}) {
+  state = s;
+  if (s === "connected") {
+    hasSession = true; show("vOk"); pill("ok", "Tersambung");
+    const n = d.user && d.user.id ? String(d.user.id).split(/[:@]/)[0] : "";
+    $("who").textContent = n ? "+" + n : "Nomormu";
+  } else if (s === "pairing_code") { show("vPair"); pill("wait", "Menunggu kode dimasukkan"); $("codeBox").textContent = (d.code || "").replace(/(.{4})(?=.)/, "$1-"); }
+  else if (s === "qr") { show("vQr"); pill("wait", "Menunggu QR dipindai"); $("qrImg").src = d.qr; }
+  else if (s === "error") { show("vForm"); pill("err", "Gagal"); setErr(d.message || "Terjadi kesalahan."); }
+  else if (s === "disconnected") { if (d.loggedOut) { hasSession = false; show("vForm"); pill("idle", "Sesi berakhir, tautkan ulang"); } else { show("vWait"); pill("wait", "Terputus, mencoba lagi…"); } }
+  else if (s === "stopped") { show("vForm"); pill("idle", "Dihentikan"); }
+  else { show(hasSession ? "vWait" : "vForm"); pill("idle", hasSession ? "Sesi tersimpan, belum jalan" : "Belum tersambung"); }
+  ctrl();
+}
+
+const socket = io(API, { transports: ["websocket"], query: { sid } });
+socket.on("connect", () => { if (state === "idle") pill("idle", "Belum tersambung"); });
+socket.on("disconnect", () => pill("err", "Server tidak terjangkau"));
+socket.on("status", (d) => { if (d.hasSession) hasSession = true; render(d.status, d); });
 socket.on("stats", (s) => countTo(s.totalLinked));
-socket.on("log", addLog);
 
-socket.on("status", (d) => {
-  busy($("btnGenQr"), false); busy($("btnStart"), false);
-  if (d.status === "qr") {
-    $("qrBox").querySelector("img")?.remove(); $("qrBox").querySelector(".ph")?.remove();
-    const img = new Image(); img.src = d.qr; img.alt = "QR Code"; $("qrBox").prepend(img);
-    setState("wait", "Menunggu Scan", "Scan QR dari WhatsApp kamu");
-  } else if (d.status === "pairing_code") {
-    showCode(d.code);
-    setState("wait", "Menunggu Kode", "Masukkan kode di WhatsApp kamu");
-  } else if (d.status === "connected") {
-    isConnected = true;
-    setState("on", "Aktif", "Bot berhasil terhubung ke WhatsApp");
-    $("qrBox").querySelector("img")?.remove(); $("pairCode").innerHTML = "";
-    $("connectArea").classList.add("hidden"); updateBanner();
-  } else if (d.status === "disconnected") {
-    isConnected = false;
-    setState("wait", "Menyambung Ulang", "Koneksi terputus, mencoba lagi...");
-    $("connectArea").classList.remove("hidden"); updateBanner();
-  } else if (d.status === "stopped") {
-    isConnected = false;
-    setState("stop", "Dihentikan", "Sesi tersimpan, tekan Minta Kode / Buat QR untuk lanjut");
-    $("connectArea").classList.remove("hidden"); updateBanner();
-  } else if (d.status === "idle") {
-    isConnected = false; setState("idle", "Tidak aktif", "Pilih cara menautkan di bawah"); updateBanner();
-  } else if (d.status === "error") {
-    setState("err", "Terjadi Error", d.message || "Coba lagi");
-  }
-});
-
-function tab(pair) {
-  $("tabs").classList.toggle("k", pair);
-  $("tabQr").classList.toggle("active", !pair); $("tabPair").classList.toggle("active", pair);
-  $("qrPane").classList.toggle("hidden", pair); $("pairPane").classList.toggle("hidden", !pair);
+let shown = 0;
+function countTo(n) {
+  n = Number(n) || 0; const from = shown, t0 = performance.now();
+  (function f(t) { const k = Math.min(1, (t - t0) / 700); shown = Math.round(from + (n - from) * k); $("count").textContent = shown.toLocaleString("id-ID"); if (k < 1) requestAnimationFrame(f); })(t0);
 }
-$("tabQr").onclick = () => tab(false);
-$("tabPair").onclick = () => tab(true);
 
-$("btnStart").onclick = async () => {
-  const phoneNumber = $("phoneInput").value.trim();
-  busy($("btnStart"), true); setState("wait", "Memulai...", "Mohon tunggu sebentar");
-  try {
-    const res = await fetch(BACKEND_URL + "/api/start", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phoneNumber }) });
-    const data = await res.json();
-    if (!res.ok) { alert(data.error || "Gagal memulai"); setState("err", "Gagal", data.error || ""); busy($("btnStart"), false); }
-  } catch (e) { setState("err", "Gagal", "Server tidak terjangkau"); busy($("btnStart"), false); }
-};
-$("btnGenQr").onclick = async () => {
-  busy($("btnGenQr"), true); setState("wait", "Membuat QR...", "Mohon tunggu sebentar");
-  try { await fetch(BACKEND_URL + "/api/connect-qr", { method: "POST" }); }
-  catch (e) { setState("err", "Gagal", "Server tidak terjangkau"); busy($("btnGenQr"), false); }
-};
-$("btnStop").onclick = async () => {
-  if (!confirm("Hentikan bot? Sesi login tetap tersimpan.")) return;
-  await fetch(BACKEND_URL + "/api/stop", { method: "POST" });
-};
-$("btnClear").onclick = async () => {
-  if (!confirm("Hapus sesi login? Kamu harus tautkan ulang dari nol.")) return;
-  await fetch(BACKEND_URL + "/api/clear-session", { method: "POST" });
-  $("connectArea").classList.remove("hidden");
-};
+async function post(path, body) {
+  const r = await fetch(API + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sid, ...body }) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || "Permintaan gagal (" + r.status + ")");
+  return j;
+}
 
-fetch(BACKEND_URL + "/api/status").then((r) => r.json()).then((s) => {
-  isEnabled = s.enabled; isConnected = s.connected; updateBanner();
-  if (s.connected) { setState("on", "Aktif", "Bot berhasil terhubung ke WhatsApp"); $("connectArea").classList.add("hidden"); }
-  else if (s.hasSession) setState("stop", "Terputus", "Sesi tersimpan, tekan Minta Kode / Buat QR untuk lanjut");
-  else setState("idle", "Tidak aktif", "Pilih cara menautkan di bawah");
-}).catch(() => {});
-fetch(BACKEND_URL + "/api/stats").then((r) => r.json()).then((s) => countTo(s.totalLinked)).catch(() => {});
+$("startBtn").onclick = () => { $("home").classList.add("hidden"); $("connect").classList.remove("hidden"); scrollTo(0, 0); };
+$("backBtn").onclick = () => { $("connect").classList.add("hidden"); $("home").classList.remove("hidden"); scrollTo(0, 0); };
+function setMethod(m) { method = m; $("mPair").setAttribute("aria-pressed", m === "pair"); $("mQr").setAttribute("aria-pressed", m === "qr"); $("phoneBox").classList.toggle("hidden", m === "qr"); setErr(""); }
+$("mPair").onclick = () => setMethod("pair"); $("mQr").onclick = () => setMethod("qr");
+
+$("goBtn").onclick = async () => {
+  setErr("");
+  let num = $("num").value.replace(/\D/g, "").replace(/^0+/, "").replace(/^62/, "");
+  if (method === "pair" && num.length < 8) return setErr("Isi nomor WhatsApp yang valid, contoh: 81234567890");
+  $("goBtn").disabled = true; show("vWait"); pill("wait", "Menyiapkan koneksi…");
+  try { await post("/api/s/start", { method: method === "qr" ? "qr" : "pairing", phoneNumber: "62" + num }); }
+  catch (e) { render("error", { message: e.message }); }
+  $("goBtn").disabled = false;
+};
+document.querySelectorAll("[data-cancel]").forEach((b) => (b.onclick = async () => { try { await post("/api/s/stop", {}); } catch (e) {} render("stopped"); }));
+$("copyBtn").onclick = async () => { try { await navigator.clipboard.writeText($("codeBox").textContent.replace("-", "")); $("copyBtn").textContent = "Tersalin"; setTimeout(() => ($("copyBtn").textContent = "Salin kode"), 1500); } catch (e) {} };
+$("bStart").onclick = async () => { try { show("vWait"); pill("wait", "Menyiapkan koneksi…"); await post("/api/s/start", {}); } catch (e) { render("error", { message: e.message }); } };
+$("bStop").onclick = async () => { try { await post("/api/s/stop", {}); } catch (e) {} };
+$("bClear").onclick = async () => { if (!confirm("Hapus sesi? Kamu perlu menautkan ulang nanti.")) return; try { await post("/api/s/clear", {}); hasSession = false; render("idle"); } catch (e) { render("error", { message: e.message }); } };
+
+fetch(API + "/api/stats").then((r) => r.json()).then((s) => countTo(s.totalLinked)).catch(() => {});
+fetch(API + "/api/s/status?sid=" + encodeURIComponent(sid)).then((r) => r.json()).then((s) => { if (s.hasSession) { hasSession = true; $("startBtn").textContent = "Buka panel bot"; } if (s.connected) render("connected", { user: s.user }); else render("idle"); }).catch(() => {});
 </script>
 </body>
-</html>
+      </html>
+                                                                                                                                                                       

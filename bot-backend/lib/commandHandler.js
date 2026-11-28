@@ -100,6 +100,7 @@ async function handleMessage(sock, msg, io) {
     jarvismeme: () => memes.cmdJarvisMeme(sock, msg, jid, argText),
     saudio: () => stickerExtra.cmdSaudio(sock, msg, jid),
     stickertiktok: () => stickerExtra.cmdStickerTiktok(sock, msg, jid, argText),
+    rawmsg: () => stickerExtra.cmdRawMsg(sock, msg, jid),
     cekgempa: () => gempa.cmdCekGempa(sock, msg, jid, argText),
     antikudeta: () => antikudeta.cmdAntiKudeta(sock, msg, jid, senderJid, argText),
     smeme: () => meme.cmdSmeme(sock, msg, jid, argText),
@@ -181,4 +182,5 @@ async function handleMessage(sock, msg, io) {
 }
 
 module.exports = { handleMessage };
+
   

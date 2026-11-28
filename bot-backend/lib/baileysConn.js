@@ -23,10 +23,16 @@ function createConn(sessionId, AUTH_DIR) {
 let linkingNew = false; // true kalau lagi proses tautan baru (QR / kode tautan muncul)
 
 const logger = pino({ level: 'silent' });
+const logBuf = [];
 const log = (...a) => {
   console.log('[wa:' + sessionId.slice(0, 6) + ']', ...a);
-  try { if (ioRef) ioRef.to(sessionId).emit('log', a.map(String).join(' ').slice(0, 220)); } catch (e) { /* abaikan */ }
+  const line = a.map(String).join(' ').slice(0, 220);
+  logBuf.push(new Date().toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta' }) + '  ' + line);
+  if (logBuf.length > 25) logBuf.shift();
+  try { if (ioRef) ioRef.to(sessionId).emit('log', line); } catch (e) { /* abaikan */ }
 };
+let evId = 0;
+let lastEv = null;
 
 let sock = null;
 let ioRef = null;
@@ -62,7 +68,8 @@ function withTimeout(promise, ms, label) {
 }
 
 function emitStatus(status, extra = {}) {
-  if (ioRef) ioRef.to(sessionId).emit('status', { status, ...extra });
+  lastEv = { id: ++evId, status, ...extra };
+  if (ioRef) ioRef.to(sessionId).emit('status', lastEv);
 }
 
 function messageAgeSeconds(msg) {
@@ -140,6 +147,11 @@ async function startConnection(io, handleMessage) {
     });
     sock = thisSock;
     const isStale = () => thisSock !== sock;
+    const origEnd = thisSock.end.bind(thisSock);
+    thisSock.end = (err) => {
+      log('end() dipanggil dari kode bot:', (new Error().stack || '').split('\n').slice(2, 5).map((x) => x.trim().replace(/^at /, '').slice(0, 60)).join(' < '));
+      return origEnd(err);
+    };
 
     const origSend = thisSock.sendMessage.bind(thisSock);
     thisSock.sendMessage = async (...args) => {
@@ -210,7 +222,7 @@ async function startConnection(io, handleMessage) {
       if (connection === 'close') {
         isConnected = false;
         const statusCode = new Boom(lastDisconnect?.error)?.output?.statusCode;
-        log('koneksi tertutup. kode:', statusCode, '| alasan:', lastDisconnect?.error?.message);
+        log('koneksi tertutup. kode:', statusCode, '| alasan:', lastDisconnect?.error?.message || String(lastDisconnect?.error || 'tidak ada (ditutup dari dalam)'), '| manualStop:', manualStop);
         const loggedOut = statusCode === DisconnectReason.loggedOut;
 
         if (loggedOut) {
@@ -361,8 +373,10 @@ return {
   hasSavedSession,
   logout,
   getUser: () => (sock && isConnected ? sock.user : null),
+  getLast: () => lastEv,
+  getLogs: () => logBuf.slice(),
 };
 }
 
 module.exports = { createConn };
-                                
+    

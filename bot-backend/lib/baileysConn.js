@@ -23,7 +23,10 @@ function createConn(sessionId, AUTH_DIR) {
 let linkingNew = false; // true kalau lagi proses tautan baru (QR / kode tautan muncul)
 
 const logger = pino({ level: 'silent' });
-const log = (...a) => console.log('[wa:' + sessionId.slice(0, 6) + ']', ...a);
+const log = (...a) => {
+  console.log('[wa:' + sessionId.slice(0, 6) + ']', ...a);
+  try { if (ioRef) ioRef.to(sessionId).emit('log', a.map(String).join(' ').slice(0, 220)); } catch (e) { /* abaikan */ }
+};
 
 let sock = null;
 let ioRef = null;
@@ -85,6 +88,7 @@ function hasSavedSession() {
 
 async function startConnection(io, handleMessage) {
   ioRef = io;
+  for (let i = 0; i < 75 && starting; i++) await new Promise((r) => setTimeout(r, 200));
   if (starting) {
     log('startConnection diabaikan: proses start sebelumnya masih jalan');
     return sock;
@@ -102,6 +106,14 @@ async function startConnection(io, handleMessage) {
       try { old.end(undefined); } catch (e) { /* abaikan */ }
     }
 
+    if (freshPending) {
+      freshPending = false;
+      if (!hasSavedSession()) {
+        fs.rmSync(AUTH_DIR, { recursive: true, force: true });
+        fs.mkdirSync(AUTH_DIR, { recursive: true });
+        log('sisa percobaan lama dibersihkan, mulai dari nol');
+      }
+    }
     const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
 
     let version;
@@ -282,14 +294,9 @@ async function startConnection(io, handleMessage) {
   return thisSock;
 }
 
+let freshPending = false;
 function freshStart() {
-  // percobaan tautan baru selalu mulai dari nol, supaya sisa file gagal tidak bikin koneksi macet
-  if (!hasSavedSession()) {
-    const old = sock;
-    sock = null;
-    if (old) { try { old.end(undefined); } catch (e) { /* abaikan */ } }
-    fs.rmSync(AUTH_DIR, { recursive: true, force: true });
-  }
+  freshPending = true;
 }
 
 function requestPairing(number) {
@@ -358,4 +365,4 @@ return {
 }
 
 module.exports = { createConn };
-      
+                                

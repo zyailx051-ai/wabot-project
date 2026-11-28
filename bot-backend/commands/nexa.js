@@ -159,5 +159,23 @@ async function cmdNokia(sock, msg, jid, argText, pushName) {
   await sock.sendMessage(jid, { image: res.buffer, caption: 'SMS Nokia' }, { quoted: msg });
 }
 
-module.exports = { cmdBratVid2, cmdNokia, fetchNexa, sniff, findUrl };
-                        
+// .rndmanime — gambar anime acak dari API Nexa
+async function cmdRandomAnime(sock, msg, jid) {
+  let res, lastErr;
+  for (let i = 0; i < 3; i++) {
+    try {
+      res = await fetchNexa(NEXA_BASE + '/api/random/anime');
+      if (sniff(res.buffer, res.contentType) !== 'unknown') break;
+      lastErr = new Error('hasil bukan gambar');
+      res = null;
+    } catch (e) { lastErr = e; res = null; }
+  }
+  if (!res) throw new Error('API random anime gagal: ' + (lastErr?.message || 'tidak diketahui'));
+  const kind = sniff(res.buffer, res.contentType);
+  if (kind === 'mp4' || kind === 'webm') return sock.sendMessage(jid, { video: res.buffer, caption: '🌸 Random anime' }, { quoted: msg });
+  const img = kind === 'webp' || kind === 'gif' ? await sharp(res.buffer).jpeg({ quality: 92 }).toBuffer() : res.buffer;
+  await sock.sendMessage(jid, { image: img, caption: '🌸 Random anime' }, { quoted: msg });
+}
+
+module.exports = { cmdBratVid2, cmdNokia, cmdRandomAnime, fetchNexa, sniff, findUrl };
+      

@@ -19,11 +19,11 @@ const lidmap = require('./lidmap');
 const quizCmd = require('../commands/quiz');
 const sambungCmd = require('../commands/sambung');
 
+function createConn(sessionId, AUTH_DIR) {
 let linkingNew = false; // true kalau lagi proses tautan baru (QR / kode tautan muncul)
 
-const AUTH_DIR = path.join(__dirname, '..', 'auth_session');
 const logger = pino({ level: 'silent' });
-const log = (...a) => console.log('[wa]', ...a);
+const log = (...a) => console.log('[wa:' + sessionId.slice(0, 6) + ']', ...a);
 
 let sock = null;
 let ioRef = null;
@@ -59,7 +59,7 @@ function withTimeout(promise, ms, label) {
 }
 
 function emitStatus(status, extra = {}) {
-  if (ioRef) ioRef.emit('status', { status, ...extra });
+  if (ioRef) ioRef.to(sessionId).emit('status', { status, ...extra });
 }
 
 function messageAgeSeconds(msg) {
@@ -330,7 +330,8 @@ function logout() {
   emitStatus('idle');
 }
 
-module.exports = {
+
+return {
   startConnection,
   requestPairing,
   requestQr,
@@ -340,5 +341,9 @@ module.exports = {
   getStatus,
   hasSavedSession,
   logout,
+  getUser: () => (sock && isConnected ? sock.user : null),
 };
-  
+}
+
+module.exports = { createConn };
+                               

@@ -291,5 +291,5 @@ fetch(API + "/api/stats").then((r) => r.json()).then((s) => countTo(s.totalLinke
 fetch(API + "/api/s/status?sid=" + encodeURIComponent(sid)).then((r) => r.json()).then((s) => { if (s.hasSession) { hasSession = true; $("startBtn").textContent = "Buka panel bot"; } if (s.connected) render("connected", { user: s.user }); else render("idle"); }).catch(() => {});
 </script>
 </body>
-</html>
-                                                                         
+  </html>
+      

@@ -205,7 +205,7 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`Server jalan di port ${PORT}`);
+  console.log(`Server jalan di port ${PORT} | build multi-sesi v3`);
   if (baileysConn.hasSavedSession()) {
     started = true;
     baileysConn.resume();

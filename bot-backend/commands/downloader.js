@@ -344,5 +344,6 @@ module.exports = {
   cmdYoutube,
   cmdPlay,
   cmdPinterest,
-  cmdTwitter, getTiktokMedia, fetchBuffer };
-  
+  cmdTwitter, getTiktokMedia, fetchBuffer, resolveTiktokUrl };
+
+                      

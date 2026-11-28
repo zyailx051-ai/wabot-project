@@ -1,7 +1,8 @@
 const { setGroupSetting, getGroupSettings } = require('../lib/store');
 const { downloadQuotedOrDirectMedia } = require('../lib/helpers');
 const axios = require('axios');
-const { proto, generateWAMessageContent, generateWAMessageFromContent } = require('@whiskeysockets/baileys');
+const { proto, generateWAMessageContent, generateMessageID } = require('@whiskeysockets/baileys');
+const crypto = require('crypto');
 const { makeCard } = require('./welcomecard');
 const lidmap = require('../lib/lidmap');
 
@@ -128,6 +129,38 @@ async function resolvePN(sock, p) {
   return null;
 }
 
+
+// ===== Status Grup (groupStatusMessageV2 = field 103 di protobuf Message) =====
+// Baileys resmi belum punya jalur kirim untuk ini, jadi kita sisipkan field 103 sendiri saat encode.
+// Dibuat netral terhadap versi: kalau Baileys sudah punya field itu, tidak ada yang dobel.
+if (!proto.Message.__gsPatched) {
+  const origEncode = proto.Message.encode;
+  proto.Message.encode = function (m, w) {
+    const wr = origEncode.call(this, m, w);
+    if (m && m.__groupStatusInner) {
+      const innerBytes = origEncode.call(proto.Message, m.__groupStatusInner).finish();
+      wr.uint32(826).fork().uint32(10).bytes(innerBytes).ldelim(); // 826 = (103 << 3) | 2
+    }
+    return wr;
+  };
+  proto.Message.__gsPatched = true;
+}
+
+async function sendGroupStatus(sock, groupJid, content) {
+  const inner = await generateWAMessageContent(content, { upload: sock.waUploadToServer });
+  inner.messageContextInfo = { ...(inner.messageContextInfo || {}), messageSecret: crypto.randomBytes(32) };
+  const message = {
+    messageContextInfo: { messageSecret: crypto.randomBytes(32) },
+    __groupStatusInner: inner,
+  };
+  const messageId = generateMessageID();
+  await sock.relayMessage(groupJid, message, {
+    messageId,
+    additionalNodes: [{ tag: 'meta', attrs: { is_group_status: 'true' } }],
+  });
+  return messageId;
+}
+
 async function cmdSwgc(sock, msg, jid, senderJid, captionText) {
   if (!jid.endsWith('@g.us')) {
     return sock.sendMessage(jid, { text: 'Perintah ini cuma bisa dipakai di dalam grup. Kirim/reply foto atau video dengan caption *.swgc*.' }, { quoted: msg });
@@ -139,15 +172,15 @@ async function cmdSwgc(sock, msg, jid, senderJid, captionText) {
   const caption = (captionText || '').trim();
   const content = media.type === 'videoMessage' ? { video: media.buffer, caption } : { image: media.buffer, caption };
 
-  // 1) Status Grup asli (kalau versi Baileys mendukung)
-  if (proto?.Message?.prototype && 'groupStatusMessageV2' in proto.Message.prototype) {
-    try {
-      const inner = await generateWAMessageContent(content, { upload: sock.waUploadToServer });
-      const wrapped = generateWAMessageFromContent(jid, { groupStatusMessageV2: { message: inner } }, { userJid: sock.user.id });
-      await sock.relayMessage(jid, wrapped.message, { messageId: wrapped.key.id });
-      return sock.sendMessage(jid, { text: '✅ Berhasil diposting ke *Status Grup*.' }, { quoted: msg });
-    } catch (e) {
-      console.error('[swgc] status grup gagal, coba cara Status WA:', e.message);
+  // 1) Status Grup asli (tampil di grup, bukan di status pribadi bot)
+  try {
+    const id = await sendGroupStatus(sock, jid, content);
+    console.log('[swgc] status grup terkirim, id:', id);
+    return sock.sendMessage(jid, { text: '✅ Status Grup terkirim. Cek di grup ini (ikon status grup di atas daftar chat/info grup).' }, { quoted: msg });
+  } catch (e) {
+    console.error('[swgc] status grup gagal:', e.message);
+    if (process.env.SWGC_FALLBACK !== '1') {
+      return sock.sendMessage(jid, { text: '❌ Gagal posting Status Grup: ' + (e.message || 'tidak diketahui') + '\n\nPastikan nomor bot ada di grup ini dan fitur Status Grup sudah aktif di WhatsApp-nya.' }, { quoted: msg });
     }
   }
 
@@ -305,4 +338,4 @@ module.exports = {
   checkAntilink,
   isSenderAdmin,
 };
-  
+

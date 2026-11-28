@@ -214,5 +214,6 @@ async function cmdWinkApi(sock, msg, jid, argText, enhance, isRemini) {
   }
 }
 
-module.exports = { cmdToAnime, cmdToKartun, cmdTo3D, cmdToSketsa, cmdToBW, cmdFoto, cmdRemoveBg, cmdWinkApi };
-  
+module.exports = { cmdToAnime, cmdToKartun, cmdTo3D, cmdToSketsa, cmdToBW, cmdFoto, cmdRemoveBg, cmdWinkApi, viaNexa };
+
+                 

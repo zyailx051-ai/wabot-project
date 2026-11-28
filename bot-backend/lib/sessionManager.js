@@ -25,7 +25,7 @@ function savedIds() {
       if (!valid(id)) return false;
       try { // hanya sesi yang benar-benar sudah tertaut; sisa percobaan yang gagal dibersihkan
         const c = JSON.parse(fs.readFileSync(path.join(USERS_DIR, id, 'creds.json'), 'utf-8'));
-        if (c && (c.registered || c.account)) return true;
+        if (c && c.me && c.account) return true;
       } catch (e) { /* abaikan */ }
       fs.rmSync(path.join(USERS_DIR, id), { recursive: true, force: true });
       return false;
@@ -35,4 +35,4 @@ function savedIds() {
 const activeCount = () => [...map.values()].filter((c) => c.getStatus()).length;
 
 module.exports = { get, peek, drop, valid, savedIds, activeCount };
-  
+                           

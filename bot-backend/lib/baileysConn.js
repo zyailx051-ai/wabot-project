@@ -282,7 +282,18 @@ async function startConnection(io, handleMessage) {
   return thisSock;
 }
 
+function freshStart() {
+  // percobaan tautan baru selalu mulai dari nol, supaya sisa file gagal tidak bikin koneksi macet
+  if (!hasSavedSession()) {
+    const old = sock;
+    sock = null;
+    if (old) { try { old.end(undefined); } catch (e) { /* abaikan */ } }
+    fs.rmSync(AUTH_DIR, { recursive: true, force: true });
+  }
+}
+
 function requestPairing(number) {
+  freshStart();
   manualStop = false;
   reconnectAttempts = 0;
   pairingRequested = true;
@@ -290,6 +301,7 @@ function requestPairing(number) {
 }
 
 function requestQr() {
+  freshStart();
   manualStop = false;
   reconnectAttempts = 0;
   pairingRequested = false;
@@ -346,4 +358,4 @@ return {
 }
 
 module.exports = { createConn };
-                               
+  

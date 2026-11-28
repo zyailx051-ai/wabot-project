@@ -337,7 +337,26 @@ async function cmdPinterest(sock, msg, jid, text) {
   );
 }
 
+// .aio — kenali link otomatis lalu arahkan ke downloader yang sesuai
+async function cmdAio(sock, msg, jid, text, quotedText = '') {
+  const url = (String(text || '').match(/https?:\/\/\S+/) || String(quotedText || '').match(/https?:\/\/\S+/) || [])[0];
+  if (!url) {
+    return sock.sendMessage(jid, { text: '📥 *.aio <link>*\nKirim link TikTok, Instagram, Facebook, YouTube, Twitter/X, atau Pinterest — bot otomatis mengenalinya.\nBisa juga reply pesan yang berisi link lalu ketik *.aio*' }, { quoted: msg });
+  }
+  let host = '';
+  try { host = new URL(url).hostname.toLowerCase().replace(/^(www|m|mobile|vt|vm|web)\./, ''); } catch (e) { /* kosong */ }
+  const is = (...d) => d.some((x) => host === x || host.endsWith('.' + x));
+  if (is('tiktok.com')) return cmdTiktok(sock, msg, jid, url);
+  if (is('instagram.com', 'instagr.am')) return cmdInstagram(sock, msg, jid, url);
+  if (is('facebook.com', 'fb.watch', 'fb.com')) return cmdFacebook(sock, msg, jid, url);
+  if (is('youtube.com', 'youtu.be')) return cmdYoutube(sock, msg, jid, url, 'video');
+  if (is('twitter.com', 'x.com', 't.co')) return cmdTwitter(sock, msg, jid, url);
+  if (is('pinterest.com', 'pin.it')) return cmdPinterest(sock, msg, jid, url);
+  return sock.sendMessage(jid, { text: '❌ Link ini belum didukung.\nYang didukung: TikTok, Instagram, Facebook, YouTube, Twitter/X, Pinterest.' }, { quoted: msg });
+}
+
 module.exports = {
+  cmdAio,
   cmdTiktok,
   cmdInstagram,
   cmdFacebook,
@@ -346,4 +365,3 @@ module.exports = {
   cmdPinterest,
   cmdTwitter, getTiktokMedia, fetchBuffer, resolveTiktokUrl };
 
-                      

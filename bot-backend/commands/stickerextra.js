@@ -155,7 +155,7 @@ async function cmdSaudio(sock, msg, jid) {
     return;
   }
   const mp4 = await videoToSquareMp4(media.buffer, 10);
-  await sock.sendMessage(jid, { video: mp4, mimetype: 'video/mp4', gifPlayback: false }, { quoted: msg });
+  await sock.sendMessage(jid, { video: mp4, mimetype: 'video/mp4', gifPlayback: true }, { quoted: msg });
 }
 
 // .rawmsg — reply pesan apa saja (mis. stiker bersuara dari teman) untuk melihat struktur aslinya.
@@ -216,13 +216,28 @@ async function fetchComments(fullUrl, awemeId, cursor) {
   throw err;
 }
 
+// Sumber andal: Apify (isi APIFY_TOKEN di Railway). Field stiker komentar: sticker_animated_url / sticker_url.
+async function apifyStickers(fullUrl) {
+  const actor = process.env.APIFY_TT_ACTOR || 'luzivanlt~tiktok-comments-scraper';
+  const { data } = await axios.post(
+    `https://api.apify.com/v2/acts/${actor}/run-sync-get-dataset-items`,
+    { startUrls: [{ url: fullUrl }], maxCommentsPerVideo: 300, includeReplies: true },
+    { params: { token: process.env.APIFY_TOKEN }, timeout: 150000 },
+  );
+  const urls = [];
+  for (const it of Array.isArray(data) ? data : []) {
+    const u = it.sticker_animated_url || it.sticker_url;
+    if (u && !urls.includes(u)) urls.push(u);
+  }
+  return { urls, read: Array.isArray(data) ? data.length : 0 };
+}
+
 // .stickertiktok <link TikTok> [| nama pack]
-// Ambil STIKER yang dipakai orang di KOMENTAR postingan, jadikan satu pack (nama pack + pembuat sama).
 async function cmdStickerTiktok(sock, msg, jid, argText) {
   const [linkPart, packPart] = String(argText || '').split('|');
   const url = ((linkPart || '').match(/https?:\/\/\S+/) || [])[0];
   if (!url || !/tiktok\.com/i.test(url)) {
-    return sock.sendMessage(jid, { text: '🎵 *.stickertiktok <link TikTok>*\nContoh: *.stickertiktok https://vt.tiktok.com/xxxxx*\nOpsional nama pack: *.stickertiktok <link> | Pack Lucu*\n\nBot mengambil stiker yang ada di komentar postingan itu lalu mengirimnya sebagai satu pack.' }, { quoted: msg });
+    return sock.sendMessage(jid, { text: '🎵 *.stickertiktok <link TikTok>*\nContoh: *.stickertiktok https://vt.tiktok.com/xxxxx*\nOpsional nama pack: *.stickertiktok <link> | Pack Lucu*\n\nBot mengambil stiker yang dipakai orang di komentar postingan itu, lalu mengirimnya sebagai satu pack.' }, { quoted: msg });
   }
   const { resolveTiktokUrl, fetchBuffer } = require('./downloader');
   const fullUrl = await resolveTiktokUrl(url);
@@ -230,30 +245,41 @@ async function cmdStickerTiktok(sock, msg, jid, argText) {
   if (!awemeId) throw new Error('ID postingan nggak ketemu di link. Coba link lengkap tiktok.com/@user/video/123...');
 
   await sock.sendMessage(jid, { text: '⏳ Mengambil stiker dari komentar...' }, { quoted: msg });
-  const urls = [];
-  let cursor = 0;
-  try {
-    for (let page = 0; page < 6 && urls.length < 30; page++) {
-      const r = await fetchComments(fullUrl, awemeId, cursor);
-      for (const c of r.comments) {
-        for (const u of collectStickerUrls([c, c.reply_comment || c.replies || []])) if (!urls.includes(u)) urls.push(u);
-      }
-      if (!r.more) break;
-      cursor = r.next;
-    }
-  } catch (e) {
-    if (!urls.length) throw new Error('Gagal ambil komentar TikTok:\n• ' + (e.reasons || [e.message]).join('\n• '));
+  let urls = [];
+  let read = 0;
+  const notes = [];
+
+  if (process.env.APIFY_TOKEN) {
+    try { const r = await apifyStickers(fullUrl); urls = r.urls; read = r.read; }
+    catch (e) { notes.push('Apify: ' + (e.response?.status ? 'HTTP ' + e.response.status : e.message)); console.error('[stickertiktok] apify:', e.message); }
   }
   if (!urls.length) {
-    return sock.sendMessage(jid, { text: '😕 Nggak ada stiker di komentar postingan ini (atau komentarnya nggak bisa dibaca bot).' }, { quoted: msg });
+    let cursor = 0;
+    try {
+      for (let page = 0; page < 6 && urls.length < 30; page++) {
+        const r = await fetchComments(fullUrl, awemeId, cursor);
+        read += r.comments.length;
+        for (const c of r.comments) for (const u of collectStickerUrls([c, c.reply_comment || c.replies || []])) if (!urls.includes(u)) urls.push(u);
+        if (!r.more) break;
+        cursor = r.next;
+      }
+    } catch (e) { notes.push(...(e.reasons || [e.message])); }
+  }
+  console.log(`[stickertiktok] komentar terbaca: ${read}, stiker: ${urls.length}`, notes.join(' | '));
+
+  if (!urls.length) {
+    let t = read
+      ? `😕 ${read} komentar terbaca, tapi tidak ada stiker di dalamnya.`
+      : '😕 Komentar postingan ini tidak bisa dibaca bot.' + (notes.length ? '\n• ' + notes.join('\n• ') : '');
+    if (!read && !process.env.APIFY_TOKEN) t += '\n\nTikTok memblokir pembacaan komentar dari server. Pasang *APIFY_TOKEN* di variabel Railway supaya fitur ini stabil.';
+    return sock.sendMessage(jid, { text: t }, { quoted: msg });
   }
 
   const pack = (packPart || '').trim().slice(0, 40) || 'Sticker TikTok';
   const author = (process.env.BOT_NAME || 'WaBot').slice(0, 30);
   const exif = buildExif(pack, author, 'tt-' + awemeId + '-' + Date.now());
-  const list = urls.slice(0, 30);
   let n = 0;
-  for (const u of list) {
+  for (const u of urls.slice(0, 30)) {
     try {
       const webp = addExif(await anyToSticker(await fetchBuffer(u, { Referer: 'https://www.tiktok.com/' })), exif);
       await sock.sendMessage(jid, { sticker: webp }, { quoted: msg });
@@ -262,8 +288,7 @@ async function cmdStickerTiktok(sock, msg, jid, argText) {
       console.error('[stickertiktok] gagal satu stiker:', e.message);
     }
   }
-  await sock.sendMessage(jid, { text: n ? `✅ Pack *${pack}* — ${n} stiker dari komentar. Tekan lama stiker → Simpan ke Stiker Favorit / tambah ke pack.` : '❌ Stikernya ketemu tapi gagal diunduh/diubah.' }, { quoted: msg });
+  await sock.sendMessage(jid, { text: n ? `✅ Pack *${pack}* — ${n} stiker dari komentar. Tekan lama stiker → Simpan ke stiker favorit.` : '❌ Stikernya ketemu tapi gagal diunduh/diubah.' }, { quoted: msg });
 }
 
 module.exports = { cmdSaudio, cmdStickerTiktok, cmdRawMsg, _test: { addExif, buildExif, collectStickerUrls } };
-    

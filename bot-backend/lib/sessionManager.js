@@ -35,4 +35,4 @@ function savedIds() {
 const activeCount = () => [...map.values()].filter((c) => c.getStatus()).length;
 
 module.exports = { get, peek, drop, valid, savedIds, activeCount };
-                           
+  

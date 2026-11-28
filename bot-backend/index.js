@@ -150,7 +150,7 @@ app.get('/api/s/status', (req, res) => {
   const sid = req.query.sid;
   if (!sessions.valid(sid)) return res.status(400).json({ error: 'sid tidak valid' });
   const c = sessions.peek(sid);
-  res.json({ connected: c ? c.getStatus() : false, hasSession: c ? c.hasSavedSession() : false, user: c ? c.getUser() : null });
+  res.json({ connected: c ? c.getStatus() : false, hasSession: c ? c.hasSavedSession() : false, user: c ? c.getUser() : null, last: c ? c.getLast() : null, logs: c ? c.getLogs() : [] });
 });
 
 app.post('/api/s/start', async (req, res) => {
@@ -205,7 +205,7 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`Server jalan di port ${PORT} | build multi-sesi v3`);
+  console.log(`Server jalan di port ${PORT} | build multi-sesi v4`);
   if (baileysConn.hasSavedSession()) {
     started = true;
     baileysConn.resume();
@@ -221,4 +221,4 @@ server.listen(PORT, () => {
     }, 3000 * (i + 1));
   });
 });
-  
+        

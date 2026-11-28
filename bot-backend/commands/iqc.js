@@ -1,5 +1,7 @@
 const { createCanvas, loadImage } = require('@napi-rs/canvas');
 const sharp = require('sharp');
+const fs = require('fs');
+const path = require('path');
 const { downloadQuotedOrDirectMedia } = require('../lib/helpers');
 
 // Tampilan mengikuti referensi: screenshot iPhone WhatsApp gelap (bar reaksi + gelembung + menu pesan).
@@ -208,38 +210,49 @@ function drawStatusBar(ctx, W, o) {
   ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.fillRect(921, 17, 3, 8);
 }
 
-async function renderIqc(text, o) {
-  const probe = createCanvas(10, 10).getContext('2d');
-  const lay = layoutGroup(probe, text);
-  const ox = 38, oy = 729;
-  const H = Math.max(REF_H, oy + lay.totalH + 49);
-  const canvas = createCanvas(REF_W, H);
-  const ctx = canvas.getContext('2d');
-  drawGhostBackground(ctx, REF_W, H);
-  drawStatusBar(ctx, REF_W, o);
-  ctx.save(); ctx.translate(ox, oy); drawGroup(ctx, lay, o.time); ctx.restore();
-  return canvas.encode('png');
+// gelembung pesan saja (koordinat grup, sama seperti di drawGroup)
+function drawBubble(ctx, lay, time) {
+  const bx = 6, by = lay.bubY;
+  ctx.fillStyle = C.bubble;
+  rr(ctx, bx, by, lay.bubW, lay.bubH, [22, 22, 22, 6]); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(bx + 4, by + lay.bubH - 26);
+  ctx.quadraticCurveTo(bx + 1, by + lay.bubH - 4, bx - 16, by + lay.bubH);
+  ctx.quadraticCurveTo(bx + 8, by + lay.bubH + 1, bx + 24, by + lay.bubH - 10);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#ffffff'; ctx.textAlign = 'left'; ctx.font = `31px ${FONT}`;
+  lay.lines.forEach((l, i) => ctx.fillText(l, bx + BUB_PADL, by + 42 + i * LINE_H));
+  ctx.fillStyle = C.gray; ctx.font = `21px ${FONT}`; ctx.textAlign = 'right';
+  ctx.fillText(time, bx + lay.bubW - BUB_PADL, by + lay.bubH - 20);
 }
 
-// ---------- .meledak: foto pengguna + overlay yang sama ----------
-async function renderMeledak(photoBuf, text, time) {
-  let img = sharp(photoBuf).rotate();
-  const meta = await img.metadata();
-  const scaleUp = Math.max(1, 640 / (meta.width || 640));
-  img = img.resize({ width: Math.round((meta.width || 640) * scaleUp), height: Math.round((meta.height || 640) * scaleUp), fit: 'inside' });
-  const base = await img.resize({ width: 1280, height: 1280, fit: 'inside', withoutEnlargement: true }).flatten({ background: '#000' }).jpeg({ quality: 92 }).toBuffer();
-  const photo = await loadImage(base);
-  const W = photo.width, H = photo.height;
-  const canvas = createCanvas(W, H);
+// Dasar = screenshot asli (assets/iqc_template.png): bar reaksi, menu, dan latar blur dipakai apa adanya.
+// Yang diganti cuma gelembung teks + status bar (jam, jaringan, baterai).
+const TPL_PATH = path.join(__dirname, '..', 'assets', 'iqc_template.png');
+let tplImg = null;
+const TPL_BUB_H = 97;   // tinggi gelembung 1 baris di template
+const CUT = 960;        // garis potong antara gelembung dan menu di template
+
+async function renderIqc(text, o) {
+  if (!tplImg) tplImg = await loadImage(fs.readFileSync(TPL_PATH));
+  const probe = createCanvas(10, 10).getContext('2d');
+  const lay = layoutGroup(probe, text);
+  const delta = Math.max(0, lay.bubH - TPL_BUB_H);
+  const H = REF_H + delta;
+  const canvas = createCanvas(REF_W, H);
   const ctx = canvas.getContext('2d');
-  ctx.drawImage(photo, 0, 0, W, H);
-  const lay = layoutGroup(ctx, text);
-  let s = (0.823 * W) / 1024;
-  s = Math.min(s, (H * 0.96) / lay.totalH);
-  const x0 = W - 0.0465 * W - GROUP_W * s;
-  const y0 = H - lay.totalH * s - 0.002 * H;
-  ctx.save(); ctx.translate(x0, y0); ctx.scale(s, s); drawGroup(ctx, lay, time); ctx.restore();
-  return canvas.encode('jpeg', 92);
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, REF_W, H);
+  ctx.drawImage(tplImg, 0, 0, REF_W, CUT, 0, 0, REF_W, CUT);                         // atas: bar reaksi + latar
+  ctx.drawImage(tplImg, 0, CUT, REF_W, REF_H - CUT, 0, CUT + delta, REF_W, REF_H - CUT); // bawah: menu
+  // hapus gelembung lama: tutup dengan potongan latar panel blur (kolom x≈300) yang diregangkan, jadi tidak ada kotak aneh
+  ctx.drawImage(tplImg, 300, 838, 12, CUT - 838, 44, 838, 256, CUT + delta - 838);
+  ctx.fillStyle = '#000';
+  ctx.fillRect(12, 900, 26, CUT + delta - 900); // sisa ekor gelembung lama
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, REF_W, 46);                 // hapus status bar lama
+  drawStatusBar(ctx, REF_W, o);
+  ctx.save(); ctx.translate(38, 729); drawBubble(ctx, lay, o.time); ctx.restore();
+  return canvas.encode('png');
 }
 
 const nowWita = () => { const d = new Date(Date.now() + 8 * 3600 * 1000); return `${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}`; };
@@ -264,15 +277,4 @@ async function cmdIqc(sock, msg, jid, helpers, argText) {
   await sock.sendMessage(jid, { image: buf }, { quoted: msg });
 }
 
-// .meledak [teks]  — kirim foto dengan caption .meledak (atau reply foto)
-async function cmdMeledak(sock, msg, jid, helpers, argText) {
-  const media = await downloadQuotedOrDirectMedia(msg);
-  if (!media || media.type !== 'imageMessage') {
-    return sock.sendMessage(jid, { text: '💥 Kirim *foto* dengan caption *.meledak* (atau reply foto lalu ketik *.meledak*).\nBisa tambah teks: *.meledak halo bro*' }, { quoted: msg });
-  }
-  const text = ((argText || '').trim() || pick(['halo brayyy', 'p', 'woy', 'assalamualaikum', 'bang', 'halo kak'])).slice(0, 120);
-  const buf = await renderMeledak(media.buffer, text, nowWita());
-  await sock.sendMessage(jid, { image: buf }, { quoted: msg });
-}
-
-module.exports = { cmdIqc, cmdMeledak, _test: { layoutGroup, renderIqc } };
+module.exports = { cmdIqc, _test: { layoutGroup, renderIqc } };

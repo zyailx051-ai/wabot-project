@@ -5,6 +5,7 @@ const {
   fetchLatestBaileysVersion,
   makeCacheableSignalKeyStore,
   Browsers,
+  getAggregateVotesInPollMessage,
 } = require('@whiskeysockets/baileys');
 const { Boom } = require('@hapi/boom');
 const pino = require('pino');
@@ -261,6 +262,20 @@ async function startConnection(io, handleMessage) {
       handleGroupParticipantsUpdate(thisSock, event).catch((e) => console.error('Group event error:', e));
     });
 
+    thisSock.ev.on('messages.update', async (updates) => {
+      if (isStale()) return;
+      for (const u of updates) {
+        if (!u.update?.pollUpdates?.length) continue;
+        try {
+          const pollMsg = sentCache.get(u.key.id);
+          if (!pollMsg) continue;
+          await require('../commands/menu').handlePollVotes(thisSock, u.key, pollMsg, u.update.pollUpdates, getAggregateVotesInPollMessage);
+        } catch (e) {
+          log('gagal proses suara polling:', e.message);
+        }
+      }
+    });
+
     thisSock.ev.on('messages.upsert', async (m) => {
       if (isStale()) return;
       try {
@@ -379,4 +394,4 @@ return {
 }
 
 module.exports = { createConn };
-    
+  

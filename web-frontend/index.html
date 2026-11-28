@@ -163,6 +163,7 @@ footer{padding:36px 0 44px;color:var(--mu);font-size:14px}
       <p class="sub">Coba kirim <code>.menu</code> dari chat mana saja.</p>
     </div>
     <div id="vWait" class="hidden"><h2>Menyiapkan koneksi…</h2><p class="sub">Biasanya butuh beberapa detik.</p><div class="row"><button class="btn ghost sm" data-cancel>Batal</button></div></div>
+    <details id="dbg" style="margin-top:18px;border-top:1px solid var(--line)"><summary>Detail teknis</summary><pre id="logbox" style="white-space:pre-wrap;word-break:break-word;font-size:12px;color:var(--mu);margin:10px 0 0;max-height:220px;overflow:auto">Belum ada aktivitas.</pre></details>
   </div>
 
   <div class="card hidden" id="ctrl">
@@ -236,6 +237,8 @@ const socket = io(API, { transports: ["websocket"], query: { sid } });
 socket.on("connect", () => { if (state === "idle") pill("idle", "Belum tersambung"); });
 socket.on("disconnect", () => pill("err", "Server tidak terjangkau"));
 socket.on("status", (d) => { if (d.hasSession) hasSession = true; render(d.status, d); });
+const logLines = [];
+socket.on("log", (l) => { logLines.push(new Date().toLocaleTimeString("id-ID") + "  " + l); if (logLines.length > 25) logLines.shift(); const b = $("logbox"); b.textContent = logLines.join("\n"); b.scrollTop = b.scrollHeight; });
 socket.on("stats", (s) => countTo(s.totalLinked));
 
 let shown = 0;
@@ -276,4 +279,4 @@ fetch(API + "/api/s/status?sid=" + encodeURIComponent(sid)).then((r) => r.json()
 </script>
 </body>
   </html>
-  
+        

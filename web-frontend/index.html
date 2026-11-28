@@ -211,8 +211,14 @@ function pill(s, t) { $("pill").dataset.s = s; $("pillTx").textContent = t; }
 function setErr(m) { $("err").textContent = m || ""; $("err").classList.toggle("hidden", !m); }
 function ctrl() { $("ctrl").classList.toggle("hidden", !(hasSession || state === "connected")); }
 
+let wd;
+function arm() {
+  clearTimeout(wd);
+  wd = setTimeout(() => { if (!$("vWait").classList.contains("hidden")) render("error", { message: "Kode belum muncul setelah 45 detik. Cek nomor lalu coba lagi, atau pakai kode QR." }); }, 45000);
+}
 function render(s, d = {}) {
   state = s;
+  if (s !== "idle" && s !== "disconnected") clearTimeout(wd);
   if (s === "connected") {
     hasSession = true; show("vOk"); pill("ok", "Tersambung");
     const n = d.user && d.user.id ? String(d.user.id).split(/[:@]/)[0] : "";
@@ -254,14 +260,14 @@ $("goBtn").onclick = async () => {
   setErr("");
   let num = $("num").value.replace(/\D/g, "").replace(/^0+/, "").replace(/^62/, "");
   if (method === "pair" && num.length < 8) return setErr("Isi nomor WhatsApp yang valid, contoh: 81234567890");
-  $("goBtn").disabled = true; show("vWait"); pill("wait", "Menyiapkan koneksi…");
+  $("goBtn").disabled = true; show("vWait"); pill("wait", "Menyiapkan koneksi…"); arm();
   try { await post("/api/s/start", { method: method === "qr" ? "qr" : "pairing", phoneNumber: "62" + num }); }
   catch (e) { render("error", { message: e.message }); }
   $("goBtn").disabled = false;
 };
 document.querySelectorAll("[data-cancel]").forEach((b) => (b.onclick = async () => { try { await post("/api/s/stop", {}); } catch (e) {} render("stopped"); }));
 $("copyBtn").onclick = async () => { try { await navigator.clipboard.writeText($("codeBox").textContent.replace("-", "")); $("copyBtn").textContent = "Tersalin"; setTimeout(() => ($("copyBtn").textContent = "Salin kode"), 1500); } catch (e) {} };
-$("bStart").onclick = async () => { try { show("vWait"); pill("wait", "Menyiapkan koneksi…"); await post("/api/s/start", {}); } catch (e) { render("error", { message: e.message }); } };
+$("bStart").onclick = async () => { try { show("vWait"); pill("wait", "Menyiapkan koneksi…"); arm(); await post("/api/s/start", {}); } catch (e) { render("error", { message: e.message }); } };
 $("bStop").onclick = async () => { try { await post("/api/s/stop", {}); } catch (e) {} };
 $("bClear").onclick = async () => { if (!confirm("Hapus sesi? Kamu perlu menautkan ulang nanti.")) return; try { await post("/api/s/clear", {}); hasSession = false; render("idle"); } catch (e) { render("error", { message: e.message }); } };
 
@@ -269,5 +275,5 @@ fetch(API + "/api/stats").then((r) => r.json()).then((s) => countTo(s.totalLinke
 fetch(API + "/api/s/status?sid=" + encodeURIComponent(sid)).then((r) => r.json()).then((s) => { if (s.hasSession) { hasSession = true; $("startBtn").textContent = "Buka panel bot"; } if (s.connected) render("connected", { user: s.user }); else render("idle"); }).catch(() => {});
 </script>
 </body>
-      </html>
-                                                                                                                                                                       
+                                        </html>
+  

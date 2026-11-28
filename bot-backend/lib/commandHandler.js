@@ -13,6 +13,7 @@ const group = require('../commands/group');
 const uno = require('../commands/uno');
 const ai = require('../commands/ai');
 const iqc = require('../commands/iqc');
+const meledak = require('../commands/meledak');
 const quoteCmd = require('../commands/quote');
 const memes = require('../commands/memes');
 const stickerExtra = require('../commands/stickerextra');
@@ -66,6 +67,8 @@ async function handleMessage(sock, msg, io) {
   if (await uno.handleSticker(sock, msg, jid, senderJid)) return;
   if (await uno.handleButtonReply(sock, msg, jid, senderJid)) return;
 
+  if (await menu.handleReply(sock, msg, jid, text)) return; // balas angka pada pesan menu
+
   if (!text.startsWith(PREFIX)) {
     if (await quiz.handleAnswer(sock, msg, jid, senderJid, text)) return; // jawaban kuis (A/B/C/D)
     if (await sambung.handleWord(sock, msg, jid, senderJid, text)) return; // sambung kata
@@ -79,7 +82,7 @@ async function handleMessage(sock, msg, io) {
   const argText = args.join(' ');
 
   const commands = {
-    menu: () => sock.sendMessage(jid, { text: menu.mainMenu(pushName) }, { quoted: msg }),
+    menu: () => menu.sendMainMenu(sock, msg, jid, pushName),
     menusticker: () => sock.sendMessage(jid, { text: menu.stickerMenu() }, { quoted: msg }),
     menudownload: () => sock.sendMessage(jid, { text: menu.downloadMenu() }, { quoted: msg }),
     menutools: () => sock.sendMessage(jid, { text: menu.toolsMenu() }, { quoted: msg }),
@@ -94,7 +97,7 @@ async function handleMessage(sock, msg, io) {
     bratvid: () => sticker.cmdBratVid(sock, msg, jid, argText),
     bratvid2: () => nexa.cmdBratVid2(sock, msg, jid, argText),
     iqc: () => iqc.cmdIqc(sock, msg, jid, helpers, argText),
-    meledak: () => iqc.cmdMeledak(sock, msg, jid, helpers, argText),
+    meledak: () => meledak.cmdMeledak(sock, msg, jid),
     quote: () => quoteCmd.cmdQuote(sock, msg, jid, helpers, argText),
     qcwa: () => memes.cmdQcwa(sock, msg, jid, senderJid, helpers, argText),
     jarvismeme: () => memes.cmdJarvisMeme(sock, msg, jid, argText),
@@ -106,6 +109,7 @@ async function handleMessage(sock, msg, io) {
     smeme: () => meme.cmdSmeme(sock, msg, jid, argText),
     nokia: () => nexa.cmdNokia(sock, msg, jid, argText, pushName),
 
+    aio: () => downloader.cmdAio(sock, msg, jid, argText, (() => { const q = helpers.getQuoted(msg); return q ? helpers.getText(q) : ''; })()),
     tiktok: () => downloader.cmdTiktok(sock, msg, jid, argText),
     tt: () => downloader.cmdTiktok(sock, msg, jid, argText),
     ig: () => downloader.cmdInstagram(sock, msg, jid, argText),
@@ -145,7 +149,7 @@ async function handleMessage(sock, msg, io) {
     tebak: () => sambung.cmdSambung(sock, msg, jid, senderJid, argText),
     tebakkata: () => sambung.cmdSambung(sock, msg, jid, senderJid, argText),
     ttstalk: () => extras.cmdTtStalk(sock, msg, jid, argText),
-    rndmanime: () => extras.cmdRandomAnime(sock, msg, jid),
+    rndmanime: () => nexa.cmdRandomAnime(sock, msg, jid),
     rndmmeme: () => extras.cmdRandomMeme(sock, msg, jid),
 
     kick: () => group.cmdKick(sock, msg, jid, senderJid),
@@ -183,4 +187,4 @@ async function handleMessage(sock, msg, io) {
 
 module.exports = { handleMessage };
 
-  
+                        

@@ -233,10 +233,12 @@ function render(s, d = {}) {
   ctrl();
 }
 
-const socket = io(API, { transports: ["websocket"], query: { sid } });
+let seen = 0;
+function onEv(d) { if (!d) return; if (d.id) { if (d.id <= seen) return; seen = d.id; } if (d.hasSession) hasSession = true; render(d.status, d); }
+const socket = io(API, { query: { sid } }); // websocket + cadangan polling
 socket.on("connect", () => { if (state === "idle") pill("idle", "Belum tersambung"); });
-socket.on("disconnect", () => pill("err", "Server tidak terjangkau"));
-socket.on("status", (d) => { if (d.hasSession) hasSession = true; render(d.status, d); });
+socket.on("connect_error", () => {});
+socket.on("status", onEv);
 const logLines = [];
 socket.on("log", (l) => { logLines.push(new Date().toLocaleTimeString("id-ID") + "  " + l); if (logLines.length > 25) logLines.shift(); const b = $("logbox"); b.textContent = logLines.join("\n"); b.scrollTop = b.scrollHeight; });
 socket.on("stats", (s) => countTo(s.totalLinked));
@@ -274,9 +276,20 @@ $("bStart").onclick = async () => { try { show("vWait"); pill("wait", "Menyiapka
 $("bStop").onclick = async () => { try { await post("/api/s/stop", {}); } catch (e) {} };
 $("bClear").onclick = async () => { if (!confirm("Hapus sesi? Kamu perlu menautkan ulang nanti.")) return; try { await post("/api/s/clear", {}); hasSession = false; render("idle"); } catch (e) { render("error", { message: e.message }); } };
 
+// cadangan: kalau socket.io diblokir/gagal, status tetap diambil lewat HTTP biasa
+setInterval(async () => {
+  if ($("connect").classList.contains("hidden") || state === "connected") return;
+  try {
+    const s = await (await fetch(API + "/api/s/status?sid=" + encodeURIComponent(sid))).json();
+    if (s.logs && s.logs.length) { const b = $("logbox"); b.textContent = s.logs.join("\n"); b.scrollTop = b.scrollHeight; }
+    if (s.connected && state !== "connected") return render("connected", { user: s.user });
+    if (s.last) onEv(s.last);
+  } catch (e) {}
+}, 2500);
+
 fetch(API + "/api/stats").then((r) => r.json()).then((s) => countTo(s.totalLinked)).catch(() => {});
 fetch(API + "/api/s/status?sid=" + encodeURIComponent(sid)).then((r) => r.json()).then((s) => { if (s.hasSession) { hasSession = true; $("startBtn").textContent = "Buka panel bot"; } if (s.connected) render("connected", { user: s.user }); else render("idle"); }).catch(() => {});
 </script>
 </body>
-  </html>
-        
+</html>
+                                                                         
